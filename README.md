@@ -17,6 +17,8 @@ DealFlow aims to replicate and enhance the capabilities of SalesGPT while levera
 
 ## Architecture
 
+![DealFlow Sequential Diagram](src/SequenceDiagram.png)
+
 DealFlow is built using the following components from the CAMEL framework:
 
 1. **Core Agent System**
