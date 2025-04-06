@@ -2,6 +2,9 @@
 
 DealFlow is an advanced sales agent framework built on CAMEL (Communicative Agents for "Mind" Exploration of Large Language Model Society). It provides a robust system for creating autonomous, intelligent sales agents capable of conducting natural, contextually-aware sales conversations with potential customers.
 
+
+![DealFlow Architecture](src/DealFlow.png)
+
 ## Overview
 
 DealFlow aims to replicate and enhance the capabilities of SalesGPT while leveraging the powerful agent communication framework provided by CAMEL. The system enables sales agents to:
@@ -113,7 +116,7 @@ pip install dealflow
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.9+
 - camel-ai
 - Required API keys (depending on the model and tools used)
 
