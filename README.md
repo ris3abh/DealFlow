@@ -1,5 +1,7 @@
 # DealFlow
 
+PS: I am currently working on researching more about how sales teams function and how this Agentic system can automate the workflow, working as a companion for them
+
 DealFlow is an advanced sales agent framework built on CAMEL (Communicative Agents for "Mind" Exploration of Large Language Model Society). It provides a robust system for creating autonomous, intelligent sales agents capable of conducting natural, contextually-aware sales conversations with potential customers.
 
 
