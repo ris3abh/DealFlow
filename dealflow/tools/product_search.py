@@ -1,13 +1,10 @@
 # dealflow/tools/product_search.py
-from typing import Dict, Any, Optional
-from camel.toolkits import FunctionTool as Tool
-from dealflow.tools.product_search import ProductSearchTool
-from dealflow.knowledge_base.retriever import EntityKnowledgeRetriever
-from dealflow.utils.logger import logger
+from typing import Dict, Any, Optional, List
+from camel.toolkits import FunctionTool
 from dealflow.knowledge_base.retriever import EntityKnowledgeRetriever
 from dealflow.utils.logger import logger
 
-class ProductSearchTool(Tool):
+class ProductSearchTool:
     """Tool for searching product information."""
     
     def __init__(self, knowledge_retriever: EntityKnowledgeRetriever):
@@ -18,12 +15,8 @@ class ProductSearchTool(Tool):
         """
         self.knowledge_retriever = knowledge_retriever
         
-        # Initialize the Tool superclass
-        super().__init__(
-            name="ProductSearch",
-            func=self.search_products,
-            description="Useful for when you need to answer questions about product information or services offered, availability and their costs."
-        )
+        # Create the function tool by wrapping the search_products method
+        self._tool = FunctionTool(self.search_products)
         
         logger.info("Initialized ProductSearchTool")
     
@@ -31,10 +24,10 @@ class ProductSearchTool(Tool):
         """Search for products based on a query.
         
         Args:
-            query: The search query.
+            query: The search query string to find products.
             
         Returns:
-            Formatted information about matching products.
+            str: Formatted information about matching products.
         """
         try:
             # Query the knowledge base
@@ -53,3 +46,24 @@ class ProductSearchTool(Tool):
         except Exception as e:
             logger.error(f"Error searching products: {e}")
             return f"I encountered an error while searching for products: {str(e)}"
+    
+    @property
+    def name(self) -> str:
+        """Get the name of the tool."""
+        return self._tool.get_function_name()
+    
+    @property
+    def description(self) -> str:
+        """Get the description of the tool."""
+        return self._tool.get_function_description() or "Search for product information in the knowledge base."
+    
+    def __call__(self, query: str) -> str:
+        """Make the tool callable.
+        
+        Args:
+            query: The search query.
+            
+        Returns:
+            The search results.
+        """
+        return self._tool(query)

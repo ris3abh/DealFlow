@@ -1,7 +1,6 @@
 # dealflow/tools/registry.py
 from typing import List, Dict, Any, Optional
-from camel.toolkits import FunctionTool as Tool
-from dealflow.tools.product_search import ProductSearchTool
+from camel.toolkits import FunctionTool
 from dealflow.knowledge_base.retriever import EntityKnowledgeRetriever
 from dealflow.utils.logger import logger
 
@@ -26,9 +25,12 @@ class ToolRegistry:
         """Register default tools."""
         # Add product search tool if knowledge retriever is available
         if self.knowledge_retriever:
-            self.register_tool(ProductSearchTool(self.knowledge_retriever))
+            # Import here to avoid circular imports
+            from dealflow.tools.product_search import ProductSearchTool
+            product_search_tool = ProductSearchTool(self.knowledge_retriever)
+            self.register_tool(product_search_tool)
     
-    def register_tool(self, tool: Tool):
+    def register_tool(self, tool):
         """Register a tool.
         
         Args:
@@ -37,7 +39,7 @@ class ToolRegistry:
         self.tools.append(tool)
         logger.info(f"Registered tool: {tool.name}")
     
-    def get_tools(self) -> List[Tool]:
+    def get_tools(self) -> List:
         """Get all registered tools.
         
         Returns:
@@ -45,7 +47,7 @@ class ToolRegistry:
         """
         return self.tools
     
-    def get_tool_by_name(self, name: str) -> Optional[Tool]:
+    def get_tool_by_name(self, name: str) -> Optional[Any]:
         """Get a tool by name.
         
         Args:

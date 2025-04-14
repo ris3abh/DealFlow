@@ -1,7 +1,8 @@
 # dealflow/knowledge_base/retriever.py
 from typing import List, Dict, Any, Optional, Tuple, Union
+import numpy as np
+import uuid  # Import uuid for proper UUID generation
 
-from camel.retrievers import VectorRetriever
 from camel.storages import QdrantStorage, VectorRecord
 from camel.embeddings import OpenAIEmbedding
 
@@ -51,8 +52,8 @@ class EntityKnowledgeRetriever:
             collection_name=collection_name,
         )
         
-        # Initialize retriever
-        self.retriever = VectorRetriever(embedding_model=self.embedding_model)
+        # Store text chunks
+        self.text_chunks = []
         
         logger.info(f"Initialized entity knowledge retriever with collection '{collection_name}'")
     
@@ -63,8 +64,36 @@ class EntityKnowledgeRetriever:
             content: The content to add.
         """
         try:
-            self.retriever.process(content, self.vector_storage)
-            logger.info("Added content to retriever")
+            # Split content into chunks - simple by paragraph for now
+            chunks = [chunk.strip() for chunk in content.split("\n\n") if chunk.strip()]
+            
+            # Get embeddings for chunks
+            embeddings = self.embedding_model.embed_list(chunks)
+            
+            # Create a list of VectorRecord objects
+            records = []
+            for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                # Make sure the embedding is a list (not numpy array)
+                if isinstance(embedding, np.ndarray):
+                    embedding = embedding.tolist()
+                
+                # Create a VectorRecord with a proper UUID
+                record = VectorRecord(
+                    # Generate a proper UUID string instead of a simple index
+                    id=str(uuid.uuid4()),
+                    vector=embedding,
+                    metadata={"text": chunk}
+                )
+                records.append(record)
+            
+            # Add records to storage - per the documentation
+            if records:
+                self.vector_storage.add(records)
+            
+            # Store chunks
+            self.text_chunks.extend(chunks)
+            
+            logger.info(f"Added {len(chunks)} chunks to retriever")
         except Exception as e:
             logger.error(f"Error adding content to retriever: {e}")
             raise KnowledgeBaseError(f"Error adding content to retriever: {e}")
@@ -94,9 +123,35 @@ class EntityKnowledgeRetriever:
             A list of results, each containing the text and metadata.
         """
         try:
-            results = self.retriever.query(query, self.vector_storage, top_k=top_k)
-            logger.debug(f"Query: '{query}' returned {len(results)} results")
-            return results
+            # Get embedding for query
+            query_embedding = self.embedding_model.embed(query)
+            
+            # Convert numpy array to list if necessary
+            if isinstance(query_embedding, np.ndarray):
+                query_embedding = query_embedding.tolist()
+            
+            # Import VectorDBQuery for proper usage
+            from camel.storages import VectorDBQuery
+            
+            # Create a VectorDBQuery object
+            query_obj = VectorDBQuery(
+                query_vector=query_embedding,
+                top_k=top_k
+            )
+            
+            # Search vector storage using query method
+            results = self.vector_storage.query(query_obj)
+            
+            # Format results - results are QueryResult objects with score and record fields
+            formatted_results = []
+            for result in results:
+                formatted_results.append({
+                    "text": result.record.metadata.get("text", ""),
+                    "score": result.score,
+                })
+            
+            logger.debug(f"Query: '{query}' returned {len(formatted_results)} results")
+            return formatted_results
         except Exception as e:
             logger.error(f"Error querying entity knowledge: {e}")
             raise KnowledgeBaseError(f"Error querying entity knowledge: {e}")
@@ -152,6 +207,7 @@ class EntityKnowledgeRetriever:
         """Clear the entity knowledge."""
         try:
             self.vector_storage.clear()
+            self.text_chunks = []
             logger.info("Cleared entity knowledge")
         except Exception as e:
             logger.error(f"Error clearing entity knowledge: {e}")

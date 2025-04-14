@@ -26,7 +26,7 @@ sales_agent = DealFlow(
     company_values="We believe that quality sleep is essential to overall health and well-being.",
     conversation_purpose="help customers find the perfect mattress for their needs",
     use_tools=True,
-    product_catalog="product_catalog.txt",
+    product_catalog="examples/product_catalog.txt",
     verbose=True,
 )
 

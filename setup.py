@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        "camel-ai",
+        "camel-ai[all]==0.2.44",
         "python-dotenv",
         "requests",
     ],
@@ -13,5 +13,5 @@ setup(
     author_email="rishabh.sharma@spinutech.com",
     description="A sales agent framework built on CAMEL",
     keywords="ai, sales, agent, camel",
-    python_requires=">=3.9",
+    python_requires=">=3.12",
 )

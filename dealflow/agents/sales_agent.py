@@ -1,9 +1,10 @@
 # dealflow/agents/sales_agent.py
 from typing import Dict, Any, Optional, List, Union
+import json
 
 from camel.agents import ChatAgent
 from camel.models import BaseModelBackend
-from camel.messages import BaseMessage
+from camel.messages import BaseMessage, OpenAIMessage
 
 from dealflow.prompts.sales import SALES_AGENT_PROMPT, SALES_AGENT_TOOLS_PROMPT
 from dealflow.stages.conversation import ConversationStage, ConversationStages
@@ -22,7 +23,7 @@ class SalesAgent:
         config: Dict[str, Any],
         memory: ConversationMemory,
         stage_analyzer: StageAnalyzer,
-        tool_registry: Optional[ToolRegistry] = None,
+        tool_registry: Optional[ToolRegistry] = None, 
         verbose: bool = False,
     ):
         """Initialize the sales agent.
@@ -49,8 +50,7 @@ class SalesAgent:
         system_message = self._create_system_message()
         self.agent = ChatAgent(
             system_message=system_message,
-            model=model,
-            verbose=verbose
+            model=model
         )
         
         logger.info(f"Initialized SalesAgent for {self.salesperson_name}")
@@ -64,22 +64,89 @@ class SalesAgent:
         stages_dict = ConversationStages.get_all_stages_as_dict()
         stages_str = "\n".join([f"{k}: {v}" for k, v in stages_dict.items()])
         
-        system_content = SALES_AGENT_PROMPT.format(
-            salesperson_name=self.config.get("salesperson_name"),
-            salesperson_role=self.config.get("salesperson_role"),
-            company_name=self.config.get("company_name"),
-            company_business=self.config.get("company_business"),
-            company_values=self.config.get("company_values"),
-            conversation_purpose=self.config.get("conversation_purpose"),
-            conversation_type=self.config.get("conversation_type"),
-            conversation_stages=stages_str,
-            conversation_history=""
-        )
+        # Choose the appropriate prompt based on whether tools are used
+        if self.use_tools and self.tool_registry:
+            system_content = SALES_AGENT_TOOLS_PROMPT.format(
+                salesperson_name=self.config.get("salesperson_name"),
+                salesperson_role=self.config.get("salesperson_role"),
+                company_name=self.config.get("company_name"),
+                company_business=self.config.get("company_business"),
+                company_values=self.config.get("company_values"),
+                conversation_purpose=self.config.get("conversation_purpose"),
+                conversation_type=self.config.get("conversation_type"),
+                conversation_stages=stages_str,
+                conversation_history="",
+                tools=self.tool_registry.format_tools_for_prompt(),
+                tool_names=self.tool_registry.get_tool_names_str(),
+                agent_scratchpad=""
+            )
+        else:
+            system_content = SALES_AGENT_PROMPT.format(
+                salesperson_name=self.config.get("salesperson_name"),
+                salesperson_role=self.config.get("salesperson_role"),
+                company_name=self.config.get("company_name"),
+                company_business=self.config.get("company_business"),
+                company_values=self.config.get("company_values"),
+                conversation_purpose=self.config.get("conversation_purpose"),
+                conversation_type=self.config.get("conversation_type"),
+                conversation_stages=stages_str,
+                conversation_history=""
+            )
         
-        return BaseMessage.make_assistant_message(
-            role_name=self.config.get("salesperson_name"),
+        return BaseMessage.make_system_message(
             content=system_content
         )
+    
+    def _handle_tool_calls(self, response_dict: Dict[str, Any]) -> str:
+        """Handle tool calls in the response.
+        
+        Args:
+            response_dict: The response dictionary containing tool calls.
+            
+        Returns:
+            The final response after tool execution.
+        """
+        if "tool_calls" not in response_dict:
+            return response_dict.get("content", "")
+        
+        tools = self.tool_registry.get_tools()
+        tools_dict = {tool.name: tool for tool in tools}
+        
+        # Initialize response parts with any content that came before tool calls
+        response_parts = [response_dict.get("content", "")]
+        
+        # Process each tool call
+        for tool_call in response_dict.get("tool_calls", []):
+            tool_name = tool_call.get("function", {}).get("name")
+            tool_args = json.loads(tool_call.get("function", {}).get("arguments", "{}"))
+            
+            if tool_name in tools_dict:
+                tool = tools_dict[tool_name]
+                
+                # Execute the tool with the provided arguments
+                if "query" in tool_args:
+                    tool_result = tool(tool_args["query"])
+                else:
+                    # If no query parameter, pass the first value as input
+                    first_arg = next(iter(tool_args.values()), "")
+                    tool_result = tool(first_arg)
+                
+                # Add the observation to the response
+                response_parts.append(f"Observation: {tool_result}")
+            else:
+                response_parts.append(f"Error: Tool '{tool_name}' not found")
+        
+        # Generate a final response based on tool execution results
+        final_prompt = BaseMessage.make_user_message(
+            role_name="User",
+            content=f"Based on the following information, provide a helpful response to the customer:\n\n{' '.join(response_parts)}"
+        )
+        
+        final_response = self.agent.step(final_prompt)
+        
+        if hasattr(final_response, "msg"):
+            return final_response.msg.content
+        return str(final_response)
     
     @time_logger
     def step(self, conversation_stage: ConversationStage) -> str:
@@ -94,59 +161,26 @@ class SalesAgent:
         # Get conversation history
         conversation_history = self.memory.get_conversation_history()
         
-        # Create the user message with updated context
-        stages_dict = ConversationStages.get_all_stages_as_dict()
-        stages_str = "\n".join([f"{k}: {v}" for k, v in stages_dict.items()])
+        # Prepare user message with conversation history
+        user_message = BaseMessage.make_user_message(
+            role_name="User",
+            content=f"Current conversation stage: {conversation_stage.name}\n\nConversation history:\n{conversation_history}\n\nPlease continue the conversation based on the history and current stage."
+        )
         
-        if self.use_tools and self.tool_registry:
-            # Use tools prompt template
-            user_content = SALES_AGENT_TOOLS_PROMPT.format(
-                salesperson_name=self.config.get("salesperson_name"),
-                salesperson_role=self.config.get("salesperson_role"),
-                company_name=self.config.get("company_name"),
-                company_business=self.config.get("company_business"),
-                company_values=self.config.get("company_values"),
-                conversation_purpose=self.config.get("conversation_purpose"),
-                conversation_type=self.config.get("conversation_type"),
-                conversation_stages=stages_str,
-                conversation_history=conversation_history,
-                tools=self.tool_registry.format_tools_for_prompt(),
-                tool_names=self.tool_registry.get_tool_names_str(),
-                agent_scratchpad=""
-            )
-            
-            # Use tools to generate response (this is simplified)
-            tools = self.tool_registry.get_tools()
-            response = self.agent.step_with_tools(user_content, tools)
-        else:
-            # Use standard prompt template
-            user_content = SALES_AGENT_PROMPT.format(
-                salesperson_name=self.config.get("salesperson_name"),
-                salesperson_role=self.config.get("salesperson_role"),
-                company_name=self.config.get("company_name"),
-                company_business=self.config.get("company_business"),
-                company_values=self.config.get("company_values"),
-                conversation_purpose=self.config.get("conversation_purpose"),
-                conversation_type=self.config.get("conversation_type"),
-                conversation_stages=stages_str,
-                conversation_history=conversation_history
-            )
-            
-            user_message = BaseMessage.make_user_message(
-                role_name="User",
-                content=user_content
-            )
-            
-            # Generate response
-            response = self.agent.step(user_message)
+        # Get response from the agent
+        response = self.agent.step(user_message)
         
-        # Extract the content from the response
+        # Process the response
         if hasattr(response, "msg"):
-            content = response.msg.content
+            if hasattr(response.msg, "content_dict") and self.use_tools and self.tool_registry:
+                # Handle tool calls if present
+                content = self._handle_tool_calls(response.msg.content_dict)
+            else:
+                content = response.msg.content
         else:
             content = str(response)
         
-        # Process the response
+        # Clean up the response
         content = content.replace("<END_OF_TURN>", "").strip()
         
         if self.verbose:
