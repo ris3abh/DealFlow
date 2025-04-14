@@ -77,10 +77,27 @@ class ToolRegistry:
         """
         return ", ".join(self.get_tool_names())
     
+    def get_product_names_from_catalog(self) -> List[str]:
+        """Get all product names from the catalog.
+        
+        Returns:
+            A list of product names from the catalog.
+        """
+        if self.knowledge_retriever:
+            return self.knowledge_retriever.get_all_product_names()
+        return []
+    
     def format_tools_for_prompt(self) -> str:
         """Format tools for inclusion in a prompt.
         
         Returns:
             A formatted string of tools.
         """
-        return "\n".join([f"{tool.name}: {tool.description}" for tool in self.tools])
+        formatted_tools = "\n".join([f"{tool.name}: {tool.description}" for tool in self.tools])
+        
+        # Add known product names if available
+        product_names = self.get_product_names_from_catalog()
+        if product_names:
+            formatted_tools += f"\n\nOur product catalog includes: {', '.join(product_names)}"
+        
+        return formatted_tools

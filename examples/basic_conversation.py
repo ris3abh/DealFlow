@@ -48,8 +48,16 @@ while True:
     # Get response from sales agent
     response = sales_agent.step(human_input)
     
+    # Remove any thought process from the output for clean display
+    cleaned_response = response
+    if "Thought: " in response:
+        # Extract only the actual response part after the thought process
+        parts = response.split(f"{sales_agent.config.get('salesperson_name')}: ")
+        if len(parts) > 1:
+            cleaned_response = parts[1]
+    
     # Print response
-    print(f"Alex Johnson: {response}")
+    print(f"Alex Johnson: {cleaned_response}")
     
     # Check if conversation has ended
     if "<END_OF_CALL>" in response:

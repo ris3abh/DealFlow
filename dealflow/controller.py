@@ -66,6 +66,7 @@ class DealFlow:
         self.model = model
         self.verbose = verbose
         self.use_tools = self.config.get("use_tools", True)
+        self.product_catalog_path = product_catalog
         
         # Initialize memory
         self.memory = ConversationMemory()
@@ -98,6 +99,12 @@ class DealFlow:
         self.current_conversation_stage = ConversationStage.INTRODUCTION
         
         logger.info(f"Initialized DealFlow with {model.__class__.__name__}")
+        
+        # Debug: Log all known product names
+        if self.knowledge_retriever:
+            product_names = self.knowledge_retriever.get_all_product_names()
+            if product_names:
+                logger.info(f"Loaded product catalog with {len(product_names)} products: {', '.join(product_names)}")
     
     @time_logger
     def seed_agent(self):
@@ -157,3 +164,26 @@ class DealFlow:
             )
             
             return response
+    
+    def reload_product_catalog(self, product_catalog: Optional[str] = None):
+        """Reload the product catalog.
+        
+        Args:
+            product_catalog: Optional path to a product catalog file. If None, uses the original path.
+        """
+        catalog_path = product_catalog or self.product_catalog_path
+        if not catalog_path:
+            logger.warning("No product catalog path provided for reload")
+            return
+            
+        if self.knowledge_retriever:
+            # Clear existing knowledge
+            self.knowledge_retriever.clear()
+            # Load new catalog
+            self.knowledge_retriever.load_from_file(catalog_path)
+            
+            # Log known products
+            product_names = self.knowledge_retriever.get_all_product_names()
+            logger.info(f"Reloaded product catalog with {len(product_names)} products")
+        else:
+            logger.warning("Knowledge retriever not initialized, cannot reload catalog")

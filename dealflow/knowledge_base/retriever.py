@@ -2,6 +2,7 @@
 from typing import List, Dict, Any, Optional, Tuple, Union
 import numpy as np
 import uuid  # Import uuid for proper UUID generation
+import re
 
 from camel.storages import QdrantStorage, VectorRecord
 from camel.embeddings import OpenAIEmbedding
@@ -52,10 +53,35 @@ class EntityKnowledgeRetriever:
             collection_name=collection_name,
         )
         
-        # Store text chunks
+        # Store text chunks and product names for direct lookup
         self.text_chunks = []
+        self.product_names = set()
         
         logger.info(f"Initialized entity knowledge retriever with collection '{collection_name}'")
+    
+    def _extract_product_names(self, content: str) -> List[str]:
+        """Extract product names from content.
+        
+        Args:
+            content: The content to extract product names from.
+            
+        Returns:
+            A list of product names.
+        """
+        # Pattern to match product names in various formats
+        patterns = [
+            r'Product:?\s*([^\n]+)',  # Product: Name
+            r'([A-Z][a-zA-Z\s-]+(?:Mattress|Pillow|Blanket|Sheet|Base))'  # CamelCase product names
+        ]
+        
+        product_names = []
+        for pattern in patterns:
+            matches = re.findall(pattern, content)
+            product_names.extend(matches)
+        
+        # Clean up product names
+        product_names = [name.strip() for name in product_names if name.strip()]
+        return product_names
     
     def add_content(self, content: str) -> None:
         """Add content to the retriever.
@@ -67,6 +93,11 @@ class EntityKnowledgeRetriever:
             # Split content into chunks - simple by paragraph for now
             chunks = [chunk.strip() for chunk in content.split("\n\n") if chunk.strip()]
             
+            # Extract product names
+            for chunk in chunks:
+                product_names = self._extract_product_names(chunk)
+                self.product_names.update(product_names)
+            
             # Get embeddings for chunks
             embeddings = self.embedding_model.embed_list(chunks)
             
@@ -77,12 +108,19 @@ class EntityKnowledgeRetriever:
                 if isinstance(embedding, np.ndarray):
                     embedding = embedding.tolist()
                 
+                # Extract product name for metadata if possible
+                product_name = self._extract_product_names(chunk)
+                product_name = product_name[0] if product_name else None
+                
                 # Create a VectorRecord with a proper UUID
                 record = VectorRecord(
                     # Generate a proper UUID string instead of a simple index
                     id=str(uuid.uuid4()),
                     vector=embedding,
-                    metadata={"text": chunk}
+                    metadata={
+                        "text": chunk,
+                        "product_name": product_name
+                    }
                 )
                 records.append(record)
             
@@ -94,6 +132,7 @@ class EntityKnowledgeRetriever:
             self.text_chunks.extend(chunks)
             
             logger.info(f"Added {len(chunks)} chunks to retriever")
+            logger.info(f"Known product names: {len(self.product_names)}")
         except Exception as e:
             logger.error(f"Error adding content to retriever: {e}")
             raise KnowledgeBaseError(f"Error adding content to retriever: {e}")
@@ -147,6 +186,7 @@ class EntityKnowledgeRetriever:
             for result in results:
                 formatted_results.append({
                     "text": result.record.metadata.get("text", ""),
+                    "product_name": result.record.metadata.get("product_name", ""),
                     "score": result.score,
                 })
             
@@ -155,6 +195,14 @@ class EntityKnowledgeRetriever:
         except Exception as e:
             logger.error(f"Error querying entity knowledge: {e}")
             raise KnowledgeBaseError(f"Error querying entity knowledge: {e}")
+    
+    def get_all_product_names(self) -> List[str]:
+        """Get all known product names.
+        
+        Returns:
+            A list of all product names.
+        """
+        return list(self.product_names)
     
     def add_entity(self, entity: Union[Entity, Dict[str, Any]]) -> None:
         """Add an entity to the retriever.
@@ -173,6 +221,10 @@ class EntityKnowledgeRetriever:
             # Add to vector storage
             self.add_content(entity_text)
             logger.info(f"Added entity {entity.name} to retriever")
+            
+            # Add to known product names
+            if entity.entity_type == EntityType.PRODUCT:
+                self.product_names.add(entity.name)
         except Exception as e:
             logger.error(f"Error adding entity to retriever: {e}")
             raise KnowledgeBaseError(f"Error adding entity to retriever: {e}")
@@ -194,6 +246,10 @@ class EntityKnowledgeRetriever:
                 # Format entity information as text
                 entity_text = entity.format_for_display()
                 combined_content += entity_text + "\n\n"
+                
+                # Add to known product names
+                if entity.entity_type == EntityType.PRODUCT:
+                    self.product_names.add(entity.name)
             
             # Add to vector storage
             if combined_content:
@@ -208,6 +264,7 @@ class EntityKnowledgeRetriever:
         try:
             self.vector_storage.clear()
             self.text_chunks = []
+            self.product_names = set()
             logger.info("Cleared entity knowledge")
         except Exception as e:
             logger.error(f"Error clearing entity knowledge: {e}")
