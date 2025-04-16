@@ -21,12 +21,12 @@ sales_agent = DealFlow(
     model=model,
     salesperson_name="Alex Johnson",
     salesperson_role="Sales Representative",
-    company_name="Sleep Haven",
-    company_business="Sleep Haven is a premium mattress company that provides customers with the most comfortable and supportive sleeping experience possible.",
-    company_values="We believe that quality sleep is essential to overall health and well-being.",
-    conversation_purpose="help customers find the perfect mattress for their needs",
+    company_name="Yanmar",
+    company_business="Yanmar is a global manufacturer of world-class products in a wide range of applications including tractors, construction equipment, generators, energy systems, climate control systems, aquafarming systems, as well as marine engines and propulsion systems.",
+    company_values="Yanmar's innovative designs and products are designed with a never-ending focus on reliability and performance.",
+    conversation_purpose="help customers find the right Yanmar tractor or service for their requirements",
     use_tools=True,
-    product_catalog="examples/product_catalog.txt",
+    product_catalog="examples/yanmar_product_catalog.txt",
     verbose=True,
 )
 

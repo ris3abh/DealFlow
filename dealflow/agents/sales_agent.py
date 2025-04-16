@@ -113,7 +113,7 @@ class SalesAgent:
         quoted_products = re.findall(r'"([^"]*)"', text)
         
         # Also look for product names with specific patterns
-        pattern_products = re.findall(r'(?:our|the)\s+([A-Z][a-zA-Z\s-]+(?:Mattress|Pillow|Blanket|Sheet|Base))', text)
+        pattern_products = re.findall(r'(?:our|the)\s+([A-Z][a-zA-Z\s-]+(?:Tractor|Attachments|Blanket|Sheet|Base))', text)
         
         # Combine and remove duplicates
         all_products = quoted_products + pattern_products

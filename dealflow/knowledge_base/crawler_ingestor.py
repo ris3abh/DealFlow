@@ -1,18 +1,19 @@
 """
 crawler_ingestor.py
 
-This module provides functions to dynamically ingest product knowledge from a client’s website using Firecrawl,
-parse the content into Entity objects (using the DealFlow Entity schema), and cache the results for
-one-time ingestion per client.
+This module provides functions to dynamically ingest product knowledge from a client's website
+and manage the crawling process. This is the original crawler module, which has been enhanced
+by the intelligent_crawler.py module.
 """
 
 import os
 import json
 import re
-from typing import List
+from typing import List, Dict, Any, Optional
 
 from camel.loaders import Firecrawl
 from dealflow.schemas.entity import Entity, EntityType
+from dealflow.utils.logger import logger
 
 def crawl_website(url: str) -> List[str]:
     """
@@ -29,25 +30,39 @@ def crawl_website(url: str) -> List[str]:
     links = mapped.get("links", [])
     return links
 
-def scrape_pages(links: List[str]) -> List[str]:
+def scrape_pages(links: List[str], rate_limit_delay: float = 2.0) -> List[str]:
     """
-    Scrape content from each link as markdown.
+    Scrape content from each link as markdown with rate limiting.
     
     Args:
         links (List[str]): A list of URLs to scrape.
+        rate_limit_delay (float): Delay between requests in seconds.
     
     Returns:
         List[str]: A list of markdown strings scraped from the pages.
     """
+    import time
+    import random
+    
     firecrawl = Firecrawl()
     pages = []
+    
     for link in links:
         try:
+            # Respect rate limits with adaptive delay
+            time.sleep(rate_limit_delay)
+            
+            # Attempt to crawl the page
             data = firecrawl.crawl(url=link)
             markdown = data["data"][0]["markdown"]
             pages.append(markdown)
+            
+            # Add a small random delay for better rate limit management
+            time.sleep(random.uniform(0.5, 1.0))
+            
         except Exception as e:
-            print(f"Failed to scrape {link}: {e}")
+            logger.error(f"Failed to scrape {link}: {e}")
+    
     return pages
 
 def parse_markdown_to_entities(markdown_list: List[str]) -> List[Entity]:
@@ -67,15 +82,25 @@ def parse_markdown_to_entities(markdown_list: List[str]) -> List[Entity]:
     """
     entities = []
     for md in markdown_list:
-        # Extract product name using a simple 'Product:' marker.
-        match = re.search(r'Product:\s*(.+)', md, re.IGNORECASE)
-        name = match.group(1).strip() if match else "Unknown Product"
+        # Extract product name using a simple 'Product:' marker or heading pattern
+        name_patterns = [
+            r'Product:\s*(.+)',  # Product: Name
+            r'^#\s+(.+)',  # Markdown heading
+            r'<h[1-3][^>]*>([^<]+)</h[1-3]>'  # HTML heading
+        ]
+        
+        name = "Unknown Product"
+        for pattern in name_patterns:
+            match = re.search(pattern, md, re.MULTILINE)
+            if match:
+                name = match.group(1).strip()
+                break
 
-        # Extract description from the second paragraph, if available.
+        # Extract description from paragraphs
         paragraphs = [p.strip() for p in md.split("\n\n") if p.strip()]
         description = paragraphs[1] if len(paragraphs) > 1 else "No description available."
 
-        # Extract price: search for a line containing "Price:" followed by a number.
+        # Extract price: search for a line containing "Price:" followed by a number
         price_match = re.search(r'Price:\s*\$?([\d,]+\.\d+|[\d,]+)', md, re.IGNORECASE)
         if price_match:
             try:
@@ -84,15 +109,30 @@ def parse_markdown_to_entities(markdown_list: List[str]) -> List[Entity]:
                 price = None
         else:
             price = None
+        
+        # Extract properties (key-value pairs)
+        properties = {}
+        property_pattern = r'([A-Za-z ]+):\s*([^:\n]+)'
+        for match in re.finditer(property_pattern, md):
+            key = match.group(1).strip().lower()
+            value = match.group(2).strip()
+            
+            # Skip if this is the product name or description or price
+            if key in ['product', 'description', 'price']:
+                continue
+                
+            properties[key] = value
 
         # For simplicity, assume every parsed entry is a PRODUCT.
         entity = Entity(
             name=name,
             entity_type=EntityType.PRODUCT,
             description=description,
-            price=price
+            price=price,
+            properties=properties
         )
         entities.append(entity)
+    
     return entities
 
 def save_entities_to_cache(entities: List[Entity], cache_path: str = "client_cache/entities.json") -> None:
@@ -123,7 +163,12 @@ def load_cached_entities(cache_path: str = "client_cache/entities.json") -> List
         data = json.load(f)
         return [Entity.from_dict(e) for e in data]
 
-def ingest_and_save(domain: str, cache_path: str = "client_cache/entities.json") -> List[Entity]:
+def ingest_and_save(
+    domain: str, 
+    cache_path: str = "client_cache/entities.json",
+    max_links: int = 50,
+    rate_limit_delay: float = 2.0
+) -> List[Entity]:
     """
     Perform the complete ingestion:
       1. Map the domain to extract URLs.
@@ -134,17 +179,29 @@ def ingest_and_save(domain: str, cache_path: str = "client_cache/entities.json")
     Args:
         domain (str): The domain URL to ingest.
         cache_path (str): The cache file path.
+        max_links (int): Maximum number of links to process.
+        rate_limit_delay (float): Delay between requests in seconds.
     
     Returns:
         List[Entity]: The list of parsed Entity objects.
     """
-    print("Starting ingestion from domain:", domain)
+    logger.info(f"Starting ingestion from domain: {domain}")
     links = crawl_website(domain)
-    print(f"Found {len(links)} links on domain {domain}")
-    markdown_list = scrape_pages(links)
-    print(f"Scraped {len(markdown_list)} pages")
+    logger.info(f"Found {len(links)} links on domain {domain}")
+    
+    # Limit the number of links to process
+    if len(links) > max_links:
+        import random
+        links = random.sample(links, max_links)
+        logger.info(f"Limited to {max_links} random links")
+    
+    markdown_list = scrape_pages(links, rate_limit_delay)
+    logger.info(f"Scraped {len(markdown_list)} pages")
+    
     entities = parse_markdown_to_entities(markdown_list)
-    print(f"Parsed {len(entities)} entities")
+    logger.info(f"Parsed {len(entities)} entities")
+    
     save_entities_to_cache(entities, cache_path)
-    print(f"Saved entities to cache at {cache_path}")
+    logger.info(f"Saved entities to cache at {cache_path}")
+    
     return entities
