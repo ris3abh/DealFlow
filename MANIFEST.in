@@ -1,0 +1,8 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include pyproject.toml
+include setup.cfg
+
+recursive-include src/dealflow *
+recursive-exclude tests *
