@@ -1,6 +1,6 @@
-from setuptools import setup, find_packages
+#!/usr/bin/env python
+from setuptools import setup
 
-setup(
-    packages=find_packages(where="src", exclude=["tests", "tests.*"]),
-    package_dir={"": "src"}
-)
+# This file is maintained for compatibility with non-PEP 517 tools
+if __name__ == "__main__":
+    setup()

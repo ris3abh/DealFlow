@@ -5,7 +5,7 @@ PS: I am currently working on researching more about how sales teams function an
 DealFlow is an advanced sales agent framework built on CAMEL (Communicative Agents for "Mind" Exploration of Large Language Model Society). It provides a robust system for creating autonomous, intelligent sales agents capable of conducting natural, contextually-aware sales conversations with potential customers.
 
 
-![DealFlow Architecture](src/DealFlow.png)
+![DealFlow Architecture](docs/source/_static/images/DealFlow.png)
 
 ## Overview
 
@@ -19,7 +19,7 @@ DealFlow aims to replicate and enhance the capabilities of SalesGPT while levera
 
 ## Architecture
 
-![DealFlow Sequential Diagram](src/SequenceDiagram.png)
+![DealFlow Sequential Diagram](docs/source/_static/images/SequenceDiagram.png)
 
 DealFlow is built using the following components from the CAMEL framework:
 
