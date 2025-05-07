@@ -1,0 +1,116 @@
+# Azure DevOps Pipeline for DealFlow Package
+# This pipeline builds and publishes the DealFlow package to Azure Artifacts
+
+trigger:
+  branches:
+    include:
+    - main
+    - refs/tags/v*
+  paths:
+    exclude:
+    - README.md
+    - docs/**
+
+pr:
+  branches:
+    include:
+    - main
+  paths:
+    exclude:
+    - README.md
+    - docs/**
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  python.version: '3.12'
+  artifactFeed: 'DealFlow/dealflow'
+
+stages:
+- stage: Test
+  displayName: 'Test'
+  jobs:
+  - job: Test
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+        addToPath: true
+      displayName: 'Use Python $(python.version)'
+    
+    - script: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-azurepipelines
+        pip install -e .
+      displayName: 'Install dependencies'
+    
+    - script: |
+        pytest
+      displayName: 'Run tests'
+
+- stage: Build
+  displayName: 'Build'
+  dependsOn: Test
+  condition: succeeded()
+  jobs:
+  - job: Build
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+        addToPath: true
+      displayName: 'Use Python $(python.version)'
+    
+    - script: |
+        python -m pip install --upgrade pip
+        pip install wheel twine build
+      displayName: 'Install build tools'
+    
+    - script: |
+        python -m build
+      displayName: 'Build package'
+    
+    - task: CopyFiles@2
+      inputs:
+        contents: 'dist/**'
+        targetFolder: '$(Build.ArtifactStagingDirectory)'
+      displayName: 'Copy artifacts'
+    
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: 'dist'
+      displayName: 'Publish artifacts'
+
+- stage: Publish
+  displayName: 'Publish to Azure Artifacts'
+  dependsOn: Build
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+  jobs:
+  - job: Publish
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+        addToPath: true
+      displayName: 'Use Python $(python.version)'
+    
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'dist'
+        downloadPath: '$(System.ArtifactsDirectory)'
+      displayName: 'Download build artifacts'
+    
+    - task: TwineAuthenticate@1
+      inputs:
+        artifactFeed: $(artifactFeed)
+      displayName: 'Authenticate with Azure Artifacts'
+    
+    - script: |
+        python -m pip install --upgrade pip
+        pip install twine
+        python -m twine upload -r "$(artifactFeed)" --config-file $(PYPIRC_PATH) $(System.ArtifactsDirectory)/dist/*.whl $(System.ArtifactsDirectory)/dist/*.tar.gz
+      displayName: 'Upload package to Azure Artifacts'
