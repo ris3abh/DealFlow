@@ -1,9 +1,0 @@
--r requirements.in
-black
-isort
-flake8
-mypy
-pytest
-pytest-cov
-sphinx
-sphinx-rtd-theme
