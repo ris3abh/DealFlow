@@ -103,11 +103,11 @@ stages:
     
     - task: TwineAuthenticate@1
       inputs:
-        artifactFeed: $(artifactFeed)
+        artifactFeed: 'DealFlow/dealflow'
       displayName: 'Authenticate with Azure Artifacts'
-    
+
     - script: |
         python -m pip install --upgrade pip
         pip install twine
-        python -m twine upload -r "$(artifactFeed)" --config-file $(PYPIRC_PATH) $(System.ArtifactsDirectory)/dist/*.whl $(System.ArtifactsDirectory)/dist/*.tar.gz
+        python -m twine upload -r "dealflow" --config-file $(PYPIRC_PATH) $(System.ArtifactsDirectory)/dist/dist/*.whl $(System.ArtifactsDirectory)/dist/dist/*.tar.gz
       displayName: 'Upload package to Azure Artifacts'

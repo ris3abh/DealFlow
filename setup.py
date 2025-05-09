@@ -11,7 +11,7 @@ with open('README.md', 'r') as f:
 
 setup(
     name="dealflow",
-    version="0.1.0",  # Will be updated by bumpversion
+    version="0.1.3",  # Will be updated by bumpversion
     description="An advanced sales agent framework built on CAMEL",
     long_description=long_description,
     long_description_content_type="text/markdown",
