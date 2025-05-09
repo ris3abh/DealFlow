@@ -1,0 +1,34 @@
+Product: Dreamcloud Luxury Mattress
+Description: Our premium memory foam mattress with cooling gel technology for hot sleepers
+Price: $1,299
+Sizes: Twin, Full, Queen, King, California King
+Firmness: Medium-Firm
+Thickness: 12 inches
+
+Product: EcoRest Organic Mattress
+Description: Made with 100% organic materials and natural latex for eco-conscious customers
+Price: $1,599
+Sizes: Twin, Full, Queen, King
+Firmness: Medium
+Thickness: 10 inches
+
+Product: SupportPlus Orthopedic Mattress
+Description: Designed specifically for back pain relief with targeted lumbar support
+Price: $1,099
+Sizes: Twin, Full, Queen, King
+Firmness: Firm
+Thickness: 14 inches
+
+Product: CoolBreeze Hybrid Mattress
+Description: Combination of memory foam and coil springs for balanced support and breathability
+Price: $899
+Sizes: Twin, Full, Queen, King, California King
+Firmness: Medium-Soft
+Thickness: 11 inches
+
+Product: BudgetDream Value Mattress
+Description: Our most affordable option with good support for budget-conscious shoppers
+Price: $499
+Sizes: Twin, Full, Queen, King
+Firmness: Medium
+Thickness: 8 inches

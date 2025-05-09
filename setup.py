@@ -26,8 +26,9 @@ setup(
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
+        "Private :: Do Not Upload",
         "Programming Language :: Python :: 3.12",
     ],
+    license="Proprietary",
     keywords="sales, ai, camel, llm, agents",
 )

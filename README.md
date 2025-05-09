@@ -1,6 +1,7 @@
 # DealFlow
 
-PS: I am currently working on researching more about how sales teams function and how this Agentic system can automate the workflow, working as a companion for them
+[![Build Status](https://bsstfs.visualstudio.com/DealFlow/_apis/build/status/DealFlow?branchName=main)](https://bsstfs.visualstudio.com/DealFlow/_build/latest?definitionId=1&branchName=main)
+[![Package Version](https://bsstfs.pkgs.visualstudio.com/_apis/public/packaging/feeds/DealFlow/dealflow/packages/dealflow/badge)](https://bsstfs.pkgs.visualstudio.com/DealFlow/_packaging?_a=feed&feed=dealflow)
 
 DealFlow is an advanced sales agent framework built on CAMEL (Communicative Agents for "Mind" Exploration of Large Language Model Society). It provides a robust system for creating autonomous, intelligent sales agents capable of conducting natural, contextually-aware sales conversations with potential customers.
 

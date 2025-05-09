@@ -1,6 +1,3 @@
-# Azure DevOps Pipeline for DealFlow Package
-# This pipeline builds and publishes the DealFlow package to Azure Artifacts
-
 trigger:
   branches:
     include:
@@ -10,7 +7,6 @@ trigger:
     exclude:
     - README.md
     - docs/**
-
 pr:
   branches:
     include:
@@ -86,7 +82,8 @@ stages:
 - stage: Publish
   displayName: 'Publish to Azure Artifacts'
   dependsOn: Build
-  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+  # Refined condition that ensures it's from a tag AND it's a full version (not a pre-release)
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'), not(contains(variables['Build.SourceBranch'], '-')))
   jobs:
   - job: Publish
     steps:
