@@ -18,9 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include routers - both under /agents prefix
 app.include_router(agents.router, prefix="/agents", tags=["Agents"])
-app.include_router(conversations.router, tags=["Conversations"])
+app.include_router(conversations.router, prefix="/agents", tags=["Conversations"])
 
 @app.get("/", tags=["Health"])
 def health_check():

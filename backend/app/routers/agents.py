@@ -4,10 +4,9 @@ import uuid
 import os
 import tempfile
 from app.models.agent import AgentConfig, AgentResponse
-from app.services.agent_service import AgentService
+from app.services.agent_service import agent_service
 
 router = APIRouter()
-agent_service = AgentService()
 
 @router.post("/create", response_model=AgentResponse)
 async def create_agent(
@@ -30,14 +29,17 @@ async def create_agent(
         # Save product catalog if provided
         catalog_path = None
         if product_catalog:
-            # Create temp file
+            # Create temp file with unique name
             temp_dir = tempfile.gettempdir()
-            catalog_path = os.path.join(temp_dir, f"catalog_{agent_id}.txt")
+            filename = f"{agent_id}_{product_catalog.filename}"
+            catalog_path = os.path.join(temp_dir, filename)
             
             # Save file content
             content = await product_catalog.read()
             with open(catalog_path, "wb") as f:
                 f.write(content)
+            
+            print(f"Saved catalog to: {catalog_path}")
         
         # Create agent config
         config = AgentConfig(
@@ -62,6 +64,9 @@ async def create_agent(
             status="initializing"
         )
     except Exception as e:
+        print(f"Error in create_agent: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error creating agent: {str(e)}")
 
 @router.get("/{agent_id}", response_model=AgentResponse)
@@ -71,9 +76,17 @@ def get_agent(agent_id: str):
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
+    # Handle both real DealFlow agents and mock agents
+    if hasattr(agent, 'config') and hasattr(agent.config, 'get'):
+        salesperson_name = agent.config.get("salesperson_name", "Unknown")
+    elif hasattr(agent, 'config') and isinstance(agent.config, dict):
+        salesperson_name = agent.config.get("salesperson_name", "Unknown")
+    else:
+        salesperson_name = "Unknown"
+    
     return AgentResponse(
         agent_id=agent_id,
-        salesperson_name=agent.config.get("salesperson_name", "Unknown"),
+        salesperson_name=salesperson_name,
         status="active"
     )
 
@@ -81,14 +94,24 @@ def get_agent(agent_id: str):
 def list_agents():
     """Get a list of all active agents."""
     agents = agent_service.list_agents()
-    return [
-        AgentResponse(
+    result = []
+    
+    for agent_id, agent in agents.items():
+        # Handle both real DealFlow agents and mock agents
+        if hasattr(agent, 'config') and hasattr(agent.config, 'get'):
+            salesperson_name = agent.config.get("salesperson_name", "Unknown")
+        elif hasattr(agent, 'config') and isinstance(agent.config, dict):
+            salesperson_name = agent.config.get("salesperson_name", "Unknown")
+        else:
+            salesperson_name = "Unknown"
+            
+        result.append(AgentResponse(
             agent_id=agent_id,
-            salesperson_name=agent.config.get("salesperson_name", "Unknown"),
+            salesperson_name=salesperson_name,
             status="active"
-        )
-        for agent_id, agent in agents.items()
-    ]
+        ))
+    
+    return result
 
 @router.delete("/{agent_id}")
 def delete_agent(agent_id: str):

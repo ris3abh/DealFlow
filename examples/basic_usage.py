@@ -12,9 +12,9 @@ Requirements:
     requests>=2.23.3
 """
 import os
-from dotenv import load_dotenv
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
+from dotenv import load_dotenv
 
 from dealflow import DealFlow
 

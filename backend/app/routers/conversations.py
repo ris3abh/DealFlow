@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 from app.models.conversation import MessageRequest, MessageResponse, ConversationMessage
-from app.services.agent_service import AgentService
+from app.services.agent_service import agent_service
 
 router = APIRouter()
-agent_service = AgentService()
 
-@router.post("/agents/{agent_id}/chat", response_model=MessageResponse)
+@router.post("/{agent_id}/chat", response_model=MessageResponse)
 async def chat_with_agent(agent_id: str, message_request: MessageRequest):
     """Send a message to an agent and get a response."""
     try:
@@ -15,9 +14,12 @@ async def chat_with_agent(agent_id: str, message_request: MessageRequest):
     except KeyError:
         raise HTTPException(status_code=404, detail="Agent not found")
     except Exception as e:
+        print(f"Error in chat_with_agent: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
 
-@router.get("/agents/{agent_id}/conversation", response_model=List[ConversationMessage])
+@router.get("/{agent_id}/conversation", response_model=List[ConversationMessage])
 def get_conversation(agent_id: str):
     """Get the conversation history for an agent."""
     conversation = agent_service.get_conversation(agent_id)
