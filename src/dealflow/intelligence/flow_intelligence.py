@@ -1,14 +1,18 @@
 # src/dealflow/intelligence/flow_intelligence.py
 """
-Flow Intelligence Engine - Automatically generates optimal conversation flows 
-based on enabled tools, eliminating hardcoded business scenarios.
+Flow Intelligence Engine v2.0 - The core innovation of DealFlow 2.0
 
-This is the core innovation of DealFlow 2.0 that enables infinite business flexibility.
+Automatically generates optimal conversation flows based on enabled tools,
+eliminating hardcoded business scenarios and enabling infinite business flexibility.
+
+Key Innovation: Simple tool configuration → Intelligent conversation behavior
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+import hashlib
+import time
 from dealflow.utils.logger import logger
 
 
@@ -33,8 +37,14 @@ class FlowStep:
     stage_mapping: List[str]  # Maps to CAMEL conversation stages
     triggers: List[str]  # What triggers this step
     next_possible: List[FlowStepType]  # Possible next steps
-    priority: int = 50  # Priority for step selection
+    priority: int = 50  # Priority for step selection (higher = more important)
     description: str = ""
+    estimated_duration: int = 60  # seconds
+    success_criteria: List[str] = None
+    
+    def __post_init__(self):
+        if self.success_criteria is None:
+            self.success_criteria = []
 
 
 @dataclass
@@ -47,6 +57,29 @@ class ConversationFlow:
     completion_criteria: List[str]
     fallback_criteria: List[str]
     estimated_duration: int = 300  # seconds
+    max_steps: int = 6  # Complexity limit
+    created_at: float = None
+    
+    def __post_init__(self):
+        if self.created_at is None:
+            self.created_at = time.time()
+
+
+@dataclass
+class FlowValidationResult:
+    """Result of flow validation"""
+    is_valid: bool
+    errors: List[str]
+    warnings: List[str]
+    optimization_suggestions: List[str]
+    
+    def __post_init__(self):
+        if not hasattr(self, 'errors'):
+            self.errors = []
+        if not hasattr(self, 'warnings'):
+            self.warnings = []
+        if not hasattr(self, 'optimization_suggestions'):
+            self.optimization_suggestions = []
 
 
 class FlowIntelligence:
@@ -55,12 +88,21 @@ class FlowIntelligence:
     
     Key Innovation: Instead of hardcoding business scenarios, this engine analyzes
     enabled tools and generates optimal conversation flows automatically.
+    
+    Design Principles:
+    - Simplicity over complexity
+    - Consistent tool combinations = consistent flows
+    - Rule-based validation for reliability
+    - Hard limits on flow complexity
     """
     
     def __init__(self):
         self.flow_patterns = self._initialize_flow_patterns()
         self.tool_flow_mapping = self._initialize_tool_flow_mapping()
-        logger.info("FlowIntelligence engine initialized")
+        self.flow_cache = {}  # Cache generated flows for performance
+        self.validation_rules = self._initialize_validation_rules()
+        
+        logger.info("Flow Intelligence Engine v2.0 initialized")
     
     def _initialize_flow_patterns(self) -> Dict[str, FlowStep]:
         """Initialize the library of flow patterns that can be combined"""
@@ -69,9 +111,11 @@ class FlowIntelligence:
                 step_type=FlowStepType.INTRODUCTION,
                 stage_mapping=["INTRODUCTION", "QUALIFICATION"],
                 triggers=["conversation_start"],
-                next_possible=[FlowStepType.NEEDS_ASSESSMENT, FlowStepType.CATALOG_SEARCH, FlowStepType.SERVICE_EXPLANATION],
+                next_possible=[FlowStepType.NEEDS_ASSESSMENT, FlowStepType.CATALOG_SEARCH],
                 priority=100,  # Always highest priority - every conversation starts here
-                description="Greet customer, introduce company, and qualify if they're the right person to talk to"
+                description="Greet customer, introduce company, and qualify if they're the right person to talk to",
+                estimated_duration=30,
+                success_criteria=["customer_greeted", "company_introduced", "contact_qualified"]
             ),
             
             "needs_assessment": FlowStep(
@@ -80,7 +124,9 @@ class FlowIntelligence:
                 triggers=["has_catalog_tools"],
                 next_possible=[FlowStepType.CATALOG_SEARCH, FlowStepType.SERVICE_EXPLANATION],
                 priority=80,
-                description="Ask open-ended questions to understand customer needs and pain points"
+                description="Ask open-ended questions to understand customer needs and pain points",
+                estimated_duration=90,
+                success_criteria=["needs_identified", "pain_points_discovered", "requirements_clarified"]
             ),
             
             "catalog_search": FlowStep(
@@ -89,7 +135,9 @@ class FlowIntelligence:
                 triggers=["catalog_tools_enabled"],
                 next_possible=[FlowStepType.PURCHASE_PROCESS, FlowStepType.APPOINTMENT_BOOKING, FlowStepType.LEAD_CAPTURE],
                 priority=70,
-                description="Search and recommend products/services/events from catalog based on needs"
+                description="Search and recommend products/services/events from catalog based on needs",
+                estimated_duration=120,
+                success_criteria=["catalog_searched", "recommendations_provided", "options_presented"]
             ),
             
             "service_explanation": FlowStep(
@@ -98,7 +146,9 @@ class FlowIntelligence:
                 triggers=["service_catalog_enabled"],
                 next_possible=[FlowStepType.APPOINTMENT_BOOKING, FlowStepType.LEAD_CAPTURE],
                 priority=70,
-                description="Explain services and their benefits in detail"
+                description="Explain services and their benefits in detail",
+                estimated_duration=100,
+                success_criteria=["service_explained", "benefits_communicated", "value_demonstrated"]
             ),
             
             "purchase_process": FlowStep(
@@ -107,7 +157,9 @@ class FlowIntelligence:
                 triggers=["payment_enabled"],
                 next_possible=[FlowStepType.TRANSACTION_COMPLETION],
                 priority=90,
-                description="Guide customer through purchase process and payment"
+                description="Guide customer through purchase process and payment",
+                estimated_duration=180,
+                success_criteria=["purchase_intent_confirmed", "payment_processed", "transaction_completed"]
             ),
             
             "appointment_booking": FlowStep(
@@ -116,7 +168,9 @@ class FlowIntelligence:
                 triggers=["appointment_booking_enabled"],
                 next_possible=[FlowStepType.TRANSACTION_COMPLETION],
                 priority=85,
-                description="Schedule appointment or consultation"
+                description="Schedule appointment or consultation",
+                estimated_duration=120,
+                success_criteria=["availability_checked", "appointment_scheduled", "confirmation_sent"]
             ),
             
             "lead_capture": FlowStep(
@@ -125,7 +179,9 @@ class FlowIntelligence:
                 triggers=["lead_capture_enabled"],
                 next_possible=[FlowStepType.TRANSACTION_COMPLETION],
                 priority=75,
-                description="Collect contact information for follow-up"
+                description="Collect contact information for follow-up",
+                estimated_duration=90,
+                success_criteria=["contact_info_collected", "interest_level_assessed", "follow_up_scheduled"]
             ),
             
             "information_provision": FlowStep(
@@ -134,7 +190,9 @@ class FlowIntelligence:
                 triggers=["no_action_tools"],
                 next_possible=[FlowStepType.TRANSACTION_COMPLETION],
                 priority=50,
-                description="Provide information and answer questions"
+                description="Provide information and answer questions",
+                estimated_duration=120,
+                success_criteria=["questions_answered", "information_provided", "customer_educated"]
             ),
             
             "transaction_completion": FlowStep(
@@ -143,33 +201,52 @@ class FlowIntelligence:
                 triggers=["goal_achieved", "fallback_reached"],
                 next_possible=[],
                 priority=100,
-                description="Wrap up conversation with next steps and confirmation"
+                description="Wrap up conversation with next steps and confirmation",
+                estimated_duration=30,
+                success_criteria=["next_steps_confirmed", "contact_info_provided", "conversation_closed"]
             )
         }
     
     def _initialize_tool_flow_mapping(self) -> Dict[str, List[str]]:
-        """Map tools to the flow steps they enable"""
+        """
+        Map tools to the flow steps they enable.
+        
+        Key Principle: Same tool combination = Same flow pattern
+        This ensures consistency and predictability.
+        """
         return {
-            # Catalog Tools
+            # Catalog Tools (Always require needs assessment first)
             "product_catalog": ["needs_assessment", "catalog_search"],
             "service_catalog": ["needs_assessment", "service_explanation"],
             "event_catalog": ["needs_assessment", "catalog_search"],
             "property_catalog": ["needs_assessment", "catalog_search"],
             
-            # Action Tools
-            "payment": ["purchase_process"],
-            "shopping_cart": ["purchase_process"],
-            "appointment_booking": ["appointment_booking"],
+            # Action Tools (Primary business goals)
+            "payment": ["purchase_process"],  # Stripe only
+            "appointment_booking": ["appointment_booking"],  # Google Calendar only
             "lead_capture": ["lead_capture"],
             
-            # Support Tools (don't directly affect flow but enhance experience)
-            "email_notification": [],
+            # Support Tools (Don't affect flow structure)
+            "email_notification": [],  # Gmail only
             "sms_notification": [],
-            "calendar_integration": ["appointment_booking"],
-            "crm_integration": ["lead_capture"]
         }
     
-    def generate_conversation_flow(self, tools_enabled: List[str], business_context: Optional[Dict[str, Any]] = None) -> ConversationFlow:
+    def _initialize_validation_rules(self) -> Dict[str, Any]:
+        """Initialize validation rules for flow integrity"""
+        return {
+            "max_steps": 6,  # Complexity limit
+            "min_steps": 3,  # Minimum viable flow
+            "required_start": FlowStepType.INTRODUCTION,
+            "required_end": FlowStepType.TRANSACTION_COMPLETION,
+            "max_duration": 600,  # 10 minutes max conversation
+            "required_catalog_tool": True,  # Must have at least one catalog tool
+        }
+    
+    def generate_conversation_flow(
+        self, 
+        tools_enabled: List[str], 
+        business_context: Optional[Dict[str, Any]] = None
+    ) -> ConversationFlow:
         """
         Dynamically generate optimal conversation flow based on available tools.
         
@@ -177,27 +254,37 @@ class FlowIntelligence:
         
         Args:
             tools_enabled: List of enabled tool names
-            business_context: Optional context about the business
+            business_context: Optional context (currently unused for simplicity)
             
         Returns:
             ConversationFlow: Complete flow configuration
+            
+        Raises:
+            ValueError: If tool configuration is invalid
         """
         logger.info(f"Generating conversation flow for tools: {tools_enabled}")
+        
+        # Validate tool requirements
+        self._validate_tool_requirements(tools_enabled)
+        
+        # Check cache first for performance
+        cache_key = self._generate_cache_key(tools_enabled)
+        if cache_key in self.flow_cache:
+            logger.info("Returning cached flow")
+            return self.flow_cache[cache_key]
         
         # Step 1: Always start with introduction
         selected_steps = ["introduction"]
         
-        # Step 2: Determine if we need needs assessment based on catalog tools
+        # Step 2: Determine if we need needs assessment (required for catalog tools)
         if self._has_catalog_tools(tools_enabled):
             selected_steps.append("needs_assessment")
             
-            # Add appropriate catalog step
-            if any(tool in ["product_catalog", "event_catalog", "property_catalog"] for tool in tools_enabled):
-                selected_steps.append("catalog_search")
-            elif "service_catalog" in tools_enabled:
-                selected_steps.append("service_explanation")
+            # Step 3: Add appropriate catalog step
+            catalog_step = self._determine_catalog_step(tools_enabled)
+            selected_steps.append(catalog_step)
         
-        # Step 3: Determine primary action based on highest priority action tool
+        # Step 4: Determine primary action based on highest priority action tool
         primary_action = self._get_primary_action_tool(tools_enabled)
         if primary_action:
             selected_steps.append(primary_action)
@@ -205,19 +292,19 @@ class FlowIntelligence:
             # No action tools - default to information provision
             selected_steps.append("information_provision")
         
-        # Step 4: Always end with transaction completion
+        # Step 5: Always end with transaction completion
         selected_steps.append("transaction_completion")
         
-        # Step 5: Build flow steps from patterns
+        # Step 6: Build flow steps from patterns
         flow_steps = [self.flow_patterns[step_name] for step_name in selected_steps]
         
-        # Step 6: Generate completion criteria
+        # Step 7: Generate completion criteria
         completion_criteria, fallback_criteria = self._generate_completion_criteria(tools_enabled, primary_action)
         
-        # Step 7: Determine business type
-        business_type = self._infer_business_type(tools_enabled, business_context)
+        # Step 8: Determine business type
+        business_type = self._infer_business_type(tools_enabled)
         
-        # Step 8: Create flow configuration
+        # Step 9: Create flow configuration
         flow = ConversationFlow(
             flow_id=self._generate_flow_id(tools_enabled),
             business_type=business_type,
@@ -225,37 +312,76 @@ class FlowIntelligence:
             primary_goal=self._determine_primary_goal(primary_action, business_type),
             completion_criteria=completion_criteria,
             fallback_criteria=fallback_criteria,
-            estimated_duration=self._estimate_conversation_duration(flow_steps)
+            estimated_duration=sum(step.estimated_duration for step in flow_steps),
+            max_steps=len(flow_steps)
         )
+        
+        # Step 10: Validate the generated flow
+        validation_result = self.validate_flow(flow)
+        if not validation_result.is_valid:
+            error_msg = f"Generated invalid flow: {validation_result.errors}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        # Step 11: Cache the flow for performance
+        self.flow_cache[cache_key] = flow
         
         logger.info(f"Generated {len(flow_steps)} step flow for {business_type} business")
         return flow
+    
+    def _validate_tool_requirements(self, tools_enabled: List[str]) -> None:
+        """Validate that tool configuration meets basic requirements"""
+        if not tools_enabled:
+            raise ValueError("At least one tool must be enabled")
+        
+        # Must have at least one catalog tool (our core requirement)
+        if not self._has_catalog_tools(tools_enabled):
+            raise ValueError("At least one catalog tool (product_catalog, service_catalog, event_catalog, or property_catalog) must be enabled")
+        
+        # Validate tool names
+        valid_tools = set(self.tool_flow_mapping.keys())
+        invalid_tools = [tool for tool in tools_enabled if tool not in valid_tools]
+        if invalid_tools:
+            raise ValueError(f"Invalid tools detected: {invalid_tools}")
+        
+        logger.debug("Tool requirements validation passed")
     
     def _has_catalog_tools(self, tools_enabled: List[str]) -> bool:
         """Check if any catalog tools are enabled"""
         catalog_tools = ["product_catalog", "service_catalog", "event_catalog", "property_catalog"]
         return any(tool in tools_enabled for tool in catalog_tools)
     
+    def _determine_catalog_step(self, tools_enabled: List[str]) -> str:
+        """Determine which catalog step to use based on enabled tools"""
+        if "service_catalog" in tools_enabled:
+            return "service_explanation"
+        else:
+            # product_catalog, event_catalog, property_catalog all use catalog_search
+            return "catalog_search"
+    
     def _get_primary_action_tool(self, tools_enabled: List[str]) -> Optional[str]:
         """
         Determine the primary action tool based on priority.
         
-        Priority order: payment > appointment_booking > lead_capture
+        Priority order (highest to lowest):
+        1. payment (purchase_process) - Direct revenue
+        2. appointment_booking - Lead conversion  
+        3. lead_capture - Future revenue
         """
-        action_priority = {
-            "purchase_process": ["payment", "shopping_cart"],
-            "appointment_booking": ["appointment_booking", "calendar_integration"],
-            "lead_capture": ["lead_capture", "crm_integration"]
-        }
+        action_priority = [
+            ("purchase_process", ["payment"]),
+            ("appointment_booking", ["appointment_booking"]),
+            ("lead_capture", ["lead_capture"])
+        ]
         
         # Check in priority order
-        for action_type, required_tools in action_priority.items():
+        for action_type, required_tools in action_priority:
             if any(tool in tools_enabled for tool in required_tools):
                 return action_type
         
         return None
     
-    def _generate_completion_criteria(self, tools_enabled: List[str], primary_action: Optional[str]) -> tuple:
+    def _generate_completion_criteria(self, tools_enabled: List[str], primary_action: Optional[str]) -> Tuple[List[str], List[str]]:
         """Generate completion and fallback criteria based on tools and primary action"""
         completion_criteria = []
         fallback_criteria = []
@@ -307,12 +433,12 @@ class FlowIntelligence:
         
         return completion_criteria, fallback_criteria
     
-    def _infer_business_type(self, tools_enabled: List[str], business_context: Optional[Dict[str, Any]]) -> str:
-        """Infer business type from enabled tools and context"""
-        if business_context and "business_type" in business_context:
-            return business_context["business_type"]
+    def _infer_business_type(self, tools_enabled: List[str]) -> str:
+        """
+        Infer business type from enabled tools using simple, consistent rules.
         
-        # Infer from tools
+        Keep it simple - same tool combination = same business type
+        """
         if "product_catalog" in tools_enabled and "payment" in tools_enabled:
             return "ecommerce"
         elif "service_catalog" in tools_enabled and "appointment_booking" in tools_enabled:
@@ -338,28 +464,72 @@ class FlowIntelligence:
             return "provide_information_and_build_interest"
     
     def _generate_flow_id(self, tools_enabled: List[str]) -> str:
-        """Generate unique flow ID based on tool combination"""
+        """Generate unique but deterministic flow ID based on tool combination"""
         tools_sorted = sorted(tools_enabled)
         tools_str = "_".join(tools_sorted)
-        return f"flow_{hash(tools_str) % 10000:04d}"
+        # Use SHA-256 hash for deterministic but unique IDs
+        hash_object = hashlib.sha256(tools_str.encode())
+        return f"flow_{hash_object.hexdigest()[:8]}"
     
-    def _estimate_conversation_duration(self, flow_steps: List[FlowStep]) -> int:
-        """Estimate conversation duration in seconds based on flow complexity"""
-        base_duration = 120  # 2 minutes base
-        step_duration = {
-            FlowStepType.INTRODUCTION: 30,
-            FlowStepType.NEEDS_ASSESSMENT: 60,
-            FlowStepType.CATALOG_SEARCH: 90,
-            FlowStepType.SERVICE_EXPLANATION: 120,
-            FlowStepType.PURCHASE_PROCESS: 180,
-            FlowStepType.APPOINTMENT_BOOKING: 120,
-            FlowStepType.LEAD_CAPTURE: 60,
-            FlowStepType.INFORMATION_PROVISION: 90,
-            FlowStepType.TRANSACTION_COMPLETION: 30
-        }
+    def _generate_cache_key(self, tools_enabled: List[str]) -> str:
+        """Generate cache key for tool combination"""
+        return "_".join(sorted(tools_enabled))
+    
+    def validate_flow(self, flow: ConversationFlow) -> FlowValidationResult:
+        """
+        Validate that a generated flow is logical and complete using rule-based validation.
         
-        total_duration = sum(step_duration.get(step.step_type, 60) for step in flow_steps)
-        return max(total_duration, base_duration)
+        Args:
+            flow: The flow to validate
+            
+        Returns:
+            FlowValidationResult with validation status and feedback
+        """
+        errors = []
+        warnings = []
+        suggestions = []
+        
+        # Rule 1: Flow must start with introduction
+        if not flow.steps or flow.steps[0].step_type != FlowStepType.INTRODUCTION:
+            errors.append("Flow must start with introduction step")
+        
+        # Rule 2: Flow must end with transaction completion
+        if not flow.steps or flow.steps[-1].step_type != FlowStepType.TRANSACTION_COMPLETION:
+            errors.append("Flow must end with transaction completion step")
+        
+        # Rule 3: Check step count limits
+        if len(flow.steps) > self.validation_rules["max_steps"]:
+            errors.append(f"Flow exceeds maximum steps ({self.validation_rules['max_steps']}): {len(flow.steps)}")
+        elif len(flow.steps) < self.validation_rules["min_steps"]:
+            errors.append(f"Flow below minimum steps ({self.validation_rules['min_steps']}): {len(flow.steps)}")
+        
+        # Rule 4: Check for logical step progression
+        for i, step in enumerate(flow.steps[:-1]):
+            next_step = flow.steps[i + 1]
+            if next_step.step_type not in step.next_possible:
+                errors.append(f"Invalid progression from {step.step_type.value} to {next_step.step_type.value}")
+        
+        # Rule 5: Check estimated duration
+        if flow.estimated_duration > self.validation_rules["max_duration"]:
+            warnings.append(f"Flow duration ({flow.estimated_duration}s) exceeds recommended maximum ({self.validation_rules['max_duration']}s)")
+        
+        # Rule 6: Check that primary goal aligns with completion criteria
+        if not flow.completion_criteria:
+            errors.append("Flow must have completion criteria")
+        
+        # Generate optimization suggestions
+        if flow.estimated_duration > 300:  # 5 minutes
+            suggestions.append("Consider simplifying the flow to reduce conversation time")
+        
+        if len(flow.steps) == self.validation_rules["max_steps"]:
+            suggestions.append("Flow is at maximum complexity - monitor performance closely")
+        
+        return FlowValidationResult(
+            is_valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            optimization_suggestions=suggestions
+        )
     
     def get_flow_summary(self, flow: ConversationFlow) -> Dict[str, Any]:
         """Get a human-readable summary of the flow"""
@@ -370,40 +540,90 @@ class FlowIntelligence:
             "steps": [step.step_type.value for step in flow.steps],
             "estimated_duration_minutes": flow.estimated_duration // 60,
             "completion_criteria": flow.completion_criteria,
-            "total_steps": len(flow.steps)
+            "total_steps": len(flow.steps),
+            "created_at": flow.created_at,
+            "max_steps": flow.max_steps
         }
     
-    def validate_flow(self, flow: ConversationFlow) -> tuple[bool, List[str]]:
-        """
-        Validate that a generated flow is logical and complete.
-        
-        Returns:
-            Tuple of (is_valid, list_of_issues)
-        """
-        issues = []
-        
-        # Check that flow starts with introduction
-        if not flow.steps or flow.steps[0].step_type != FlowStepType.INTRODUCTION:
-            issues.append("Flow must start with introduction step")
-        
-        # Check that flow ends with transaction completion
-        if not flow.steps or flow.steps[-1].step_type != FlowStepType.TRANSACTION_COMPLETION:
-            issues.append("Flow must end with transaction completion step")
-        
-        # Check for logical step progression
-        for i, step in enumerate(flow.steps[:-1]):
-            next_step = flow.steps[i + 1]
-            if next_step.step_type not in step.next_possible:
-                issues.append(f"Invalid progression from {step.step_type.value} to {next_step.step_type.value}")
-        
-        # Check that primary goal aligns with completion criteria
-        if not flow.completion_criteria:
-            issues.append("Flow must have completion criteria")
-        
-        # Check flow length is reasonable
-        if len(flow.steps) < 2:
-            issues.append("Flow must have at least 2 steps")
-        elif len(flow.steps) > 10:
-            issues.append("Flow should not exceed 10 steps for optimal user experience")
-        
-        return len(issues) == 0, issues
+    def clear_cache(self) -> None:
+        """Clear the flow cache"""
+        self.flow_cache.clear()
+        logger.info("Flow cache cleared")
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics"""
+        return {
+            "cached_flows": len(self.flow_cache),
+            "cache_keys": list(self.flow_cache.keys())
+        }
+
+
+# Example usage and testing functions
+def create_example_flows():
+    """Create example flows for different business types"""
+    engine = FlowIntelligence()
+    
+    examples = {
+        "E-commerce Store": ["product_catalog", "payment", "email_notification"],
+        "Service Business": ["service_catalog", "appointment_booking"],
+        "Event Business": ["event_catalog", "payment"],
+        "Real Estate": ["property_catalog", "appointment_booking", "lead_capture"],
+        "Consultation Business": ["service_catalog", "lead_capture"],
+    }
+    
+    results = {}
+    for business_name, tools in examples.items():
+        try:
+            flow = engine.generate_conversation_flow(tools)
+            summary = engine.get_flow_summary(flow)
+            results[business_name] = summary
+            logger.info(f"Generated flow for {business_name}: {len(flow.steps)} steps")
+        except Exception as e:
+            logger.error(f"Failed to generate flow for {business_name}: {e}")
+            results[business_name] = {"error": str(e)}
+    
+    return results
+
+
+if __name__ == "__main__":
+    # Quick test of the Flow Intelligence Engine
+    logger.info("Testing Flow Intelligence Engine v2.0")
+    
+    engine = FlowIntelligence()
+    
+    # Test different tool combinations
+    test_cases = [
+        ["product_catalog", "payment"],
+        ["service_catalog", "appointment_booking"],
+        ["event_catalog", "payment", "email_notification"],
+        ["property_catalog", "lead_capture"],
+    ]
+    
+    for tools in test_cases:
+        try:
+            flow = engine.generate_conversation_flow(tools)
+            summary = engine.get_flow_summary(flow)
+            print(f"\nTools: {tools}")
+            print(f"Business Type: {summary['business_type']}")
+            print(f"Steps: {summary['steps']}")
+            print(f"Duration: {summary['estimated_duration_minutes']} minutes")
+            print(f"Goal: {summary['primary_goal']}")
+        except Exception as e:
+            print(f"Error with tools {tools}: {e}")
+    
+    print(f"\nCache stats: {engine.get_cache_stats()}")
+
+
+# engine = FlowIntelligence()
+# import json
+
+# # E-commerce flow
+# # E-commerce flow
+# flow = engine.generate_conversation_flow(["product_catalog", "payment"])
+# with open("product_catalog_payment.log", "w") as file:
+#     file.write(json.dumps(engine.get_flow_summary(flow), indent=2))
+
+# # Service business flow  
+# flow = engine.generate_conversation_flow(["service_catalog", "appointment_booking"])
+# with open("service_catalog_appointment.log", "w") as file:
+#     file.write(json.dumps(engine.get_flow_summary(flow), indent=2))
