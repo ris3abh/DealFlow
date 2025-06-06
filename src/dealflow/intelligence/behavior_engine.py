@@ -588,110 +588,110 @@ class BehaviorEngine:
         }
 
 
-# Testing functions
-def test_behavior_engine():
-    """Test the behavior engine with different configurations"""
-    from dealflow.schemas.configuration import SmartAgentConfig, CompanyInfo, BusinessType
+# # Testing functions
+# def test_behavior_engine():
+#     """Test the behavior engine with different configurations"""
+#     from dealflow.schemas.configuration import SmartAgentConfig, CompanyInfo, BusinessType
     
-    behavior_engine = BehaviorEngine()
+#     behavior_engine = BehaviorEngine()
     
-    # Test case 1: E-commerce
-    ecommerce_config = SmartAgentConfig(
-        company_info=CompanyInfo(
-            company_name="TechGear Pro",
-            agent_name="Alex",
-            agent_role="Sales Consultant",
-            company_description="We sell premium electronics and tech accessories.",
-            company_values="Quality, innovation, and customer satisfaction."
-        ),
-        tools_enabled=["product_catalog", "payment", "email_notification"],
-        business_type=BusinessType.ECOMMERCE
-    )
+#     # Test case 1: E-commerce
+#     ecommerce_config = SmartAgentConfig(
+#         company_info=CompanyInfo(
+#             company_name="TechGear Pro",
+#             agent_name="Alex",
+#             agent_role="Sales Consultant",
+#             company_description="We sell premium electronics and tech accessories.",
+#             company_values="Quality, innovation, and customer satisfaction."
+#         ),
+#         tools_enabled=["product_catalog", "payment", "email_notification"],
+#         business_type=BusinessType.ECOMMERCE
+#     )
     
-    # Test case 2: Service Business
-    service_config = SmartAgentConfig(
-        company_info=CompanyInfo(
-            company_name="Legal Solutions",
-            agent_name="Sarah",
-            agent_role="Legal Consultant", 
-            company_description="We provide comprehensive legal services.",
-            company_values="Integrity, expertise, and personalized service."
-        ),
-        tools_enabled=["service_catalog", "appointment_booking"],
-        business_type=BusinessType.SERVICE_BUSINESS
-    )
+#     # Test case 2: Service Business
+#     service_config = SmartAgentConfig(
+#         company_info=CompanyInfo(
+#             company_name="Legal Solutions",
+#             agent_name="Sarah",
+#             agent_role="Legal Consultant", 
+#             company_description="We provide comprehensive legal services.",
+#             company_values="Integrity, expertise, and personalized service."
+#         ),
+#         tools_enabled=["service_catalog", "appointment_booking"],
+#         business_type=BusinessType.SERVICE_BUSINESS
+#     )
     
-    test_cases = [
-        ("E-commerce", ecommerce_config),
-        ("Service Business", service_config)
-    ]
+#     test_cases = [
+#         ("E-commerce", ecommerce_config),
+#         ("Service Business", service_config)
+#     ]
     
-    results = {}
+#     results = {}
     
-    for name, config in test_cases:
-        try:
-            agent_config = behavior_engine.configure_agent(config)
-            summary = behavior_engine.get_configuration_summary(agent_config)
-            results[name] = summary
+#     for name, config in test_cases:
+#         try:
+#             agent_config = behavior_engine.configure_agent(config)
+#             summary = behavior_engine.get_configuration_summary(agent_config)
+#             results[name] = summary
             
-            logger.info(f"Successfully configured {name} agent")
+#             logger.info(f"Successfully configured {name} agent")
             
-        except Exception as e:
-            logger.error(f"Failed to configure {name} agent: {e}")
-            results[name] = {"error": str(e)}
+#         except Exception as e:
+#             logger.error(f"Failed to configure {name} agent: {e}")
+#             results[name] = {"error": str(e)}
     
-    return results
+#     return results
 
 
-if __name__ == "__main__":
-    # Test the Behavior Engine
-    logger.info("Testing Behavior Engine v2.0 - Master Orchestrator")
+# if __name__ == "__main__":
+#     # Test the Behavior Engine
+#     logger.info("Testing Behavior Engine v2.0 - Master Orchestrator")
     
-    results = test_behavior_engine()
+#     results = test_behavior_engine()
     
-    for business_name, result in results.items():
-        print(f"\n{'='*70}")
-        print(f"AGENT CONFIGURATION: {business_name.upper()}")
-        print(f"{'='*70}")
+#     for business_name, result in results.items():
+#         print(f"\n{'='*70}")
+#         print(f"AGENT CONFIGURATION: {business_name.upper()}")
+#         print(f"{'='*70}")
         
-        if "error" in result:
-            print(f"❌ Error: {result['error']}")
-            continue
+#         if "error" in result:
+#             print(f"❌ Error: {result['error']}")
+#             continue
         
-        identity = result["agent_identity"]
-        conversation = result["conversation_setup"]
-        tools = result["tool_configuration"]
-        integrations = result["integration_requirements"]
-        monitoring = result["monitoring_setup"]
-        performance = result["performance_settings"]
+#         identity = result["agent_identity"]
+#         conversation = result["conversation_setup"]
+#         tools = result["tool_configuration"]
+#         integrations = result["integration_requirements"]
+#         monitoring = result["monitoring_setup"]
+#         performance = result["performance_settings"]
         
-        print(f"🤖 Agent Identity:")
-        print(f"   Business Type: {identity['business_type']}")
-        print(f"   Configuration ID: {identity['configuration_id']}")
-        print(f"   Version: {identity['version']}")
+#         print(f"🤖 Agent Identity:")
+#         print(f"   Business Type: {identity['business_type']}")
+#         print(f"   Configuration ID: {identity['configuration_id']}")
+#         print(f"   Version: {identity['version']}")
         
-        print(f"\n💬 Conversation Setup:")
-        print(f"   Primary Goal: {conversation['primary_goal']}")
-        print(f"   Success Metric: {conversation['success_metric']}")
-        print(f"   Duration: {conversation['estimated_duration_minutes']} minutes")
+#         print(f"\n💬 Conversation Setup:")
+#         print(f"   Primary Goal: {conversation['primary_goal']}")
+#         print(f"   Success Metric: {conversation['success_metric']}")
+#         print(f"   Duration: {conversation['estimated_duration_minutes']} minutes")
         
-        print(f"\n🔧 Tool Configuration:")
-        print(f"   Tools Enabled: {', '.join(tools['tools_enabled'])}")
-        print(f"   Critical Tools: {', '.join(tools['critical_tools'])}")
-        print(f"   Execution Phases: {', '.join(tools['execution_phases'])}")
+#         print(f"\n🔧 Tool Configuration:")
+#         print(f"   Tools Enabled: {', '.join(tools['tools_enabled'])}")
+#         print(f"   Critical Tools: {', '.join(tools['critical_tools'])}")
+#         print(f"   Execution Phases: {', '.join(tools['execution_phases'])}")
         
-        print(f"\n🔗 Integration Requirements:")
-        print(f"   Required Services: {', '.join(integrations['required_services'])}")
-        print(f"   Total Integrations: {integrations['total_integrations']}")
+#         print(f"\n🔗 Integration Requirements:")
+#         print(f"   Required Services: {', '.join(integrations['required_services'])}")
+#         print(f"   Total Integrations: {integrations['total_integrations']}")
         
-        print(f"\n📊 Monitoring & Performance:")
-        print(f"   Key Metrics: {monitoring['key_metrics']} tracked")
-        print(f"   Response Timeout: {performance['response_timeout']}s")
-        print(f"   Max Concurrent Tools: {performance['max_concurrent_tools']}")
+#         print(f"\n📊 Monitoring & Performance:")
+#         print(f"   Key Metrics: {monitoring['key_metrics']} tracked")
+#         print(f"   Response Timeout: {performance['response_timeout']}s")
+#         print(f"   Max Concurrent Tools: {performance['max_concurrent_tools']}")
     
-    # Show cache stats
-    behavior_engine = BehaviorEngine()
-    print(f"\n📈 Cache Statistics:")
-    cache_stats = behavior_engine.get_cache_stats()
-    for key, value in cache_stats.items():
-        print(f"   {key}: {value}")
+#     # Show cache stats
+#     behavior_engine = BehaviorEngine()
+#     print(f"\n📈 Cache Statistics:")
+#     cache_stats = behavior_engine.get_cache_stats()
+#     for key, value in cache_stats.items():
+#         print(f"   {key}: {value}")
