@@ -1,6 +1,6 @@
 """
-Advanced Web Ranking (AWR) API Tools
-Consolidated tools for all AWR Cloud API endpoints
+NEW AWR API TOOLS - Add these to your existing awr_tools.py
+Based on API test results
 """
 
 import os
@@ -8,310 +8,279 @@ import requests
 from typing import Type, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from crewai.tools import BaseTool
+from datetime import datetime, timedelta
+import csv
+from io import StringIO
 
 
 # ============================================================================
-# BASE CONFIGURATION
+# TOOL 4: GET KEYWORD RANKINGS (THE MOST IMPORTANT!)
 # ============================================================================
 
-AWR_BASE_URL = "https://api.awrcloud.com/v2/get.php"
+class AWRRankingsInput(BaseModel):
+    """Input schema for AWRRankingsTool."""
+    project: str = Field(..., description="Project name (e.g., 'pella.com')")
+    days: int = Field(default=7, description="Number of days of data to retrieve (default: 7)")
+    format: str = Field(default="csv", description="Format: csv or json")
 
 
-def get_api_key() -> str:
-    """Get AWR API key from environment"""
-    api_key = os.getenv("AWR_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "AWR API key is required. Set AWR_API_KEY environment variable."
-        )
-    return api_key
-
-
-# ============================================================================
-# TOOL 1: GET ALL PROJECTS
-# ============================================================================
-
-class AWRProjectsInput(BaseModel):
-    """Input schema for AWRProjectsTool."""
-    pass
-
-
-class AWRProjectsTool(BaseTool):
-    name: str = "Get AWR Projects"
+class AWRRankingsTool(BaseTool):
+    name: str = "Get AWR Keyword Rankings"
     description: str = (
-        "Retrieves all projects from your Advanced Web Ranking (AWR) account. "
-        "Returns project details including name, ID, tracking frequency, depth, "
-        "keyword count, main website URL, and last update timestamp. "
-        "Use this tool when you need to list all available SEO projects or "
-        "find a specific project ID for further analysis."
+        "Retrieves actual keyword ranking positions over time - THE MOST CRITICAL SEO DATA. "
+        "Returns rankings for all keywords across all search engines and dates. "
+        "This data shows: keyword, date, rank position, URL, search engine, location. "
+        "Use this for SEO performance analysis and tracking ranking changes. "
+        "Required: project name. Optional: days (default 7)."
     )
-    args_schema: Type[BaseModel] = AWRProjectsInput
+    args_schema: Type[BaseModel] = AWRRankingsInput
     
     api_key: str = Field(default="")
-    base_url: str = Field(default=AWR_BASE_URL)
+    base_url: str = Field(default="https://api.awrcloud.com/v2/get.php")
     
     def __init__(self, api_key: Optional[str] = None, **kwargs):
+        from ai_seo_forecasting.tools.awr_tools import get_api_key
         actual_api_key = api_key or get_api_key()
         super().__init__(api_key=actual_api_key, **kwargs)
     
-    def _run(self) -> Dict[str, Any]:
-        """Execute the tool to fetch AWR projects."""
+    def _run(self, project: str, days: int = 7, format: str = "csv") -> Dict[str, Any]:
+        """Execute the tool to schedule and retrieve rankings data."""
         try:
-            url = f"{self.base_url}?token={self.api_key}&action=projects"
-            headers = {"accept": "application/json"}
+            # Calculate date range
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
             
-            response = requests.get(url, headers=headers, timeout=30)
+            # Step 1: Schedule the export
+            schedule_url = (
+                f"{self.base_url}?token={self.api_key}&action=export_ranking"
+                f"&project={project}"
+                f"&startDate={start_date.strftime('%Y-%m-%d')}"
+                f"&stopDate={end_date.strftime('%Y-%m-%d')}"
+                f"&format={format}"
+                f"&searchEngineId=-1"
+                f"&keywordGroupId=-1"
+                f"&websiteId=-1"
+            )
+            
+            response = requests.get(schedule_url, headers={"accept": "application/json"}, timeout=30)
             response.raise_for_status()
             
-            data = response.json()
-            projects = data.get("projects", [])
+            # Parse the response (might be text, not JSON)
+            response_text = response.text
             
-            return {
-                "success": True,
-                "projects": projects,
-                "project_count": len(projects),
-                "message": f"Successfully retrieved {len(projects)} projects"
-            }
+            # Try to extract fileName from response
+            # Response format: "Export scheduled. fileName: project-name-dates-123"
+            file_name = None
+            if "fileName" in response_text:
+                # Extract fileName from text response
+                parts = response_text.split("fileName:")
+                if len(parts) > 1:
+                    file_name = parts[1].strip().split()[0].strip()
             
-        except requests.exceptions.Timeout:
-            return {
-                "success": False,
-                "projects": [],
-                "project_count": 0,
-                "error": "Request timed out. Please try again."
-            }
+            if not file_name:
+                return {
+                    "success": False,
+                    "project_name": project,
+                    "error": "Export scheduled but no fileName received. The export may still be processing.",
+                    "schedule_response": response_text[:200]
+                }
             
-        except requests.exceptions.HTTPError as e:
-            return self._handle_http_error(e, "retrieving projects")
+            # Step 2: Download the export
+            download_url = (
+                f"{self.base_url}?token={self.api_key}&action=get_export"
+                f"&project={project}"
+                f"&fileName={file_name}"
+            )
             
-        except Exception as e:
-            return {
-                "success": False,
-                "projects": [],
-                "project_count": 0,
-                "error": f"Unexpected error: {str(e)}"
-            }
-    
-    def _handle_http_error(self, error, action):
-        """Common HTTP error handling"""
-        status_code = error.response.status_code
-        error_msg = f"HTTP {status_code} error"
-        
-        if status_code == 401:
-            error_msg = "Authentication failed. Check your API key."
-        elif status_code == 403:
-            error_msg = "Access forbidden. Verify your API permissions."
-        elif status_code == 404:
-            error_msg = f"Not found while {action}."
-        elif status_code == 429:
-            error_msg = "Rate limit exceeded. Please wait before retrying."
-        elif status_code >= 500:
-            error_msg = "AWR server error. Please try again later."
-        
-        return {
-            "success": False,
-            "error": error_msg
-        }
-
-
-# ============================================================================
-# TOOL 2: GET PROJECT DETAILS
-# ============================================================================
-
-class AWRProjectDetailsInput(BaseModel):
-    """Input schema for AWRProjectDetailsTool."""
-    project: str = Field(..., description="The name or ID of the project")
-
-
-class AWRProjectDetailsTool(BaseTool):
-    name: str = "Get AWR Project Details"
-    description: str = (
-        "Retrieves comprehensive details about a specific AWR project including: "
-        "project configuration, tracked websites, complete keyword list, "
-        "search engines being monitored, and geographic locations. "
-        "Use this when you need in-depth information about a specific project. "
-        "Required input: project name or ID."
-    )
-    args_schema: Type[BaseModel] = AWRProjectDetailsInput
-    
-    api_key: str = Field(default="")
-    base_url: str = Field(default=AWR_BASE_URL)
-    
-    def __init__(self, api_key: Optional[str] = None, **kwargs):
-        actual_api_key = api_key or get_api_key()
-        super().__init__(api_key=actual_api_key, **kwargs)
-    
-    def _run(self, project: str) -> Dict[str, Any]:
-        """Execute the tool to fetch detailed project information."""
-        try:
-            url = f"{self.base_url}?token={self.api_key}&action=details&project={project}"
-            headers = {"accept": "application/json"}
+            download_response = requests.get(download_url, timeout=60)
+            download_response.raise_for_status()
             
-            response = requests.get(url, headers=headers, timeout=30)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            # Extract key information
-            details = data.get("details", {})
-            websites = data.get("websites", [])
-            keywords = data.get("keywords", [])
-            search_engines = data.get("search_engines", [])
-            locations = data.get("locations", [])
-            
-            return {
-                "success": True,
-                "project_name": project,
-                "details": details,
-                "websites": websites,
-                "keywords": keywords,
-                "search_engines": search_engines,
-                "locations": locations,
-                "keyword_count": len(keywords),
-                "website_count": len(websites),
-                "search_engine_count": len(search_engines),
-                "location_count": len(locations),
-                "message": f"Successfully retrieved details for project: {project}"
-            }
-            
-        except requests.exceptions.Timeout:
-            return {
-                "success": False,
-                "project_name": project,
-                "error": "Request timed out. Please try again."
-            }
-            
-        except requests.exceptions.HTTPError as e:
-            return self._handle_http_error(e, project)
+            # Parse CSV data
+            if format == "csv":
+                csv_data = StringIO(download_response.text)
+                reader = csv.DictReader(csv_data)
+                rankings = list(reader)
+                
+                return {
+                    "success": True,
+                    "project_name": project,
+                    "date_range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}",
+                    "days": days,
+                    "rankings_count": len(rankings),
+                    "rankings": rankings[:100],  # Return first 100 to avoid context overflow
+                    "total_rankings": len(rankings),
+                    "message": f"Retrieved {len(rankings)} ranking data points. Showing first 100.",
+                    "file_name": file_name
+                }
+            else:
+                return {
+                    "success": True,
+                    "project_name": project,
+                    "data": download_response.text[:5000],  # First 5000 chars
+                    "message": "Rankings data retrieved in JSON format"
+                }
             
         except Exception as e:
             return {
                 "success": False,
                 "project_name": project,
-                "error": f"Unexpected error: {str(e)}"
+                "error": f"Failed to retrieve rankings: {str(e)}"
             }
-    
-    def _handle_http_error(self, error, project):
-        """HTTP error handling for project details"""
-        status_code = error.response.status_code
-        error_msg = f"HTTP {status_code} error"
-        
-        if status_code == 401:
-            error_msg = "Authentication failed. Check your API key."
-        elif status_code == 403:
-            error_msg = "Access forbidden. Verify your API permissions."
-        elif status_code == 404:
-            error_msg = f"Project '{project}' not found. Check the project name."
-        elif status_code == 429:
-            error_msg = "Rate limit exceeded. Please wait before retrying."
-        elif status_code >= 500:
-            error_msg = "AWR server error. Please try again later."
-        
-        return {
-            "success": False,
-            "project_name": project,
-            "error": error_msg
-        }
 
 
 # ============================================================================
-# TOOL 3: GET PROJECT UPDATE DATES
+# TOOL 5: GET KEYWORD DIFFICULTY
 # ============================================================================
 
-class AWRProjectDatesInput(BaseModel):
-    """Input schema for AWRProjectDatesTool."""
-    project: str = Field(..., description="The name or ID of the project")
+class AWRKeywordDifficultyInput(BaseModel):
+    """Input schema for AWRKeywordDifficultyTool."""
+    project: str = Field(..., description="Project name (e.g., 'pella.com')")
+    project_id: str = Field(..., description="Project ID (e.g., '27')")
 
 
-class AWRProjectDatesTool(BaseTool):
-    name: str = "Get AWR Project Update Dates"
+class AWRKeywordDifficultyTool(BaseTool):
+    name: str = "Get AWR Keyword Difficulty"
     description: str = (
-        "Retrieves all dates on which a specific AWR project was updated. "
-        "This is useful for understanding tracking history, identifying data gaps, "
-        "and determining the time range available for analysis. "
-        "Returns a chronological list of all update timestamps. "
-        "Required input: project name or ID."
+        "Retrieves keyword difficulty/competitiveness scores for all keywords in a project. "
+        "Difficulty scores help prioritize which keywords to target. "
+        "Returns: keyword, difficulty score, competition level. "
+        "Use this to identify low-competition, high-value keyword opportunities. "
+        "Required: project name AND project ID."
     )
-    args_schema: Type[BaseModel] = AWRProjectDatesInput
+    args_schema: Type[BaseModel] = AWRKeywordDifficultyInput
     
     api_key: str = Field(default="")
-    base_url: str = Field(default=AWR_BASE_URL)
+    base_url: str = Field(default="https://api.awrcloud.com/v2/get.php")
     
     def __init__(self, api_key: Optional[str] = None, **kwargs):
+        from ai_seo_forecasting.tools.awr_tools import get_api_key
         actual_api_key = api_key or get_api_key()
         super().__init__(api_key=actual_api_key, **kwargs)
     
-    def _run(self, project: str) -> Dict[str, Any]:
-        """Execute the tool to fetch project update dates."""
+    def _run(self, project: str, project_id: str) -> Dict[str, Any]:
+        """Execute the tool to get keyword difficulty data."""
         try:
-            url = f"{self.base_url}?token={self.api_key}&action=get_dates&project={project}"
-            headers = {"accept": "application/json"}
+            url = (
+                f"{self.base_url}?token={self.api_key}"
+                f"&action=export_keyword_difficulty"
+                f"&projectId={project_id}"
+                f"&searchEngineId=-1"
+                f"&keywordGroupId=-1"
+                f"&mode=plain"
+            )
             
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, timeout=60)
             response.raise_for_status()
             
-            data = response.json()
-            dates = data.get("dates", [])
+            # Parse CSV data
+            csv_data = StringIO(response.text)
+            reader = csv.DictReader(csv_data)
+            difficulty_data = list(reader)
             
-            # Calculate metadata
-            date_count = len(dates)
-            first_update = dates[0] if dates else None
-            last_update = dates[-1] if dates else None
+            # Calculate summary stats
+            if difficulty_data:
+                difficulties = [float(row.get('Difficulty', 0)) for row in difficulty_data if row.get('Difficulty')]
+                avg_difficulty = sum(difficulties) / len(difficulties) if difficulties else 0
+                
+                # Categorize keywords
+                easy = len([d for d in difficulties if d < 30])
+                medium = len([d for d in difficulties if 30 <= d < 60])
+                hard = len([d for d in difficulties if d >= 60])
+            else:
+                avg_difficulty = 0
+                easy = medium = hard = 0
             
             return {
                 "success": True,
                 "project_name": project,
-                "dates": dates,
-                "date_count": date_count,
-                "first_update": first_update,
-                "last_update": last_update,
-                "message": f"Successfully retrieved {date_count} update dates for project: {project}"
+                "project_id": project_id,
+                "total_keywords": len(difficulty_data),
+                "average_difficulty": round(avg_difficulty, 2),
+                "difficulty_distribution": {
+                    "easy": easy,
+                    "medium": medium,
+                    "hard": hard
+                },
+                "keywords": difficulty_data[:50],  # First 50 keywords
+                "message": f"Retrieved difficulty scores for {len(difficulty_data)} keywords. Showing first 50."
             }
-            
-        except requests.exceptions.Timeout:
-            return {
-                "success": False,
-                "project_name": project,
-                "error": "Request timed out. Please try again."
-            }
-            
-        except requests.exceptions.HTTPError as e:
-            return self._handle_http_error(e, project)
             
         except Exception as e:
             return {
                 "success": False,
                 "project_name": project,
-                "error": f"Unexpected error: {str(e)}"
+                "error": f"Failed to retrieve keyword difficulty: {str(e)}"
             }
+
+
+# ============================================================================
+# TOOL 6: GET SEARCH VOLUME
+# ============================================================================
+
+class AWRSearchVolumeInput(BaseModel):
+    """Input schema for AWRSearchVolumeTool."""
+    project_id: str = Field(..., description="Project ID (e.g., '27')")
+
+
+class AWRSearchVolumeTool(BaseTool):
+    name: str = "Get AWR Search Volume Data"
+    description: str = (
+        "Retrieves AdWords search volume data for keywords in a project. "
+        "Shows monthly search volume estimates for each keyword. "
+        "Use this to understand keyword traffic potential and prioritize targets. "
+        "Required: project ID."
+    )
+    args_schema: Type[BaseModel] = AWRSearchVolumeInput
     
-    def _handle_http_error(self, error, project):
-        """HTTP error handling for project dates"""
-        status_code = error.response.status_code
-        error_msg = f"HTTP {status_code} error"
-        
-        if status_code == 401:
-            error_msg = "Authentication failed. Check your API key."
-        elif status_code == 403:
-            error_msg = "Access forbidden. Verify your API permissions."
-        elif status_code == 404:
-            error_msg = f"Project '{project}' not found. Check the project name."
-        elif status_code == 429:
-            error_msg = "Rate limit exceeded. Please wait before retrying."
-        elif status_code >= 500:
-            error_msg = "AWR server error. Please try again later."
-        
-        return {
-            "success": False,
-            "project_name": project,
-            "error": error_msg
-        }
-
-
-# ============================================================================
-# FUTURE TOOLS - Add more AWR API endpoints here as needed
-# ============================================================================
-
-# TODO: Add AWRRankingsTool for get_ranks
-# TODO: Add AWRKeywordsTool for keyword-specific data
-# TODO: Add AWRCompetitorsTool for competitor analysis
+    api_key: str = Field(default="")
+    base_url: str = Field(default="https://api.awrcloud.com/v2/get.php")
+    
+    def __init__(self, api_key: Optional[str] = None, **kwargs):
+        from ai_seo_forecasting.tools.awr_tools import get_api_key
+        actual_api_key = api_key or get_api_key()
+        super().__init__(api_key=actual_api_key, **kwargs)
+    
+    def _run(self, project_id: str) -> Dict[str, Any]:
+        """Execute the tool to get search volume data."""
+        try:
+            url = (
+                f"{self.base_url}?token={self.api_key}"
+                f"&action=export_search_volume"
+                f"&projectId={project_id}"
+                f"&dataType=searchVolume"
+                f"&keywordGroupIds=-1"
+                f"&mode=plain"
+            )
+            
+            response = requests.get(url, timeout=60)
+            response.raise_for_status()
+            
+            # Parse CSV data
+            csv_data = StringIO(response.text)
+            reader = csv.DictReader(csv_data)
+            volume_data = list(reader)
+            
+            # Calculate summary
+            if volume_data:
+                volumes = [int(row.get('Searches', 0)) for row in volume_data if row.get('Searches', '').isdigit()]
+                total_volume = sum(volumes)
+                avg_volume = total_volume / len(volumes) if volumes else 0
+            else:
+                total_volume = avg_volume = 0
+            
+            return {
+                "success": True,
+                "project_id": project_id,
+                "total_keywords": len(volume_data),
+                "total_monthly_searches": total_volume,
+                "average_monthly_searches": round(avg_volume, 0),
+                "keywords": volume_data[:50],  # First 50 keywords
+                "message": f"Retrieved search volume for {len(volume_data)} keywords. Total monthly searches: {total_volume:,}"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "project_id": project_id,
+                "error": f"Failed to retrieve search volume: {str(e)}"
+            }
