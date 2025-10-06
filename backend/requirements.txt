@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-python-multipart
-Werkzeug
-pydantic
-dealflow>=0.1.3
-camel-ai[model_platforms,rag]==0.2.50
-python-dotenv

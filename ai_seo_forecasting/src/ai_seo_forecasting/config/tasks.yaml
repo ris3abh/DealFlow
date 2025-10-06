@@ -1,0 +1,89 @@
+retrieve_projects_task:
+  description: >
+    Retrieve all available SEO projects from the Advanced Web Ranking account.
+    Get comprehensive project information including project names, IDs, tracking 
+    frequencies, keyword counts, and main website URLs.
+    
+    Use the AWR Projects tool to fetch this data. Structure the information clearly.
+  expected_output: >
+    A structured list of all AWR projects with names, IDs, frequencies, keyword counts, 
+    and websites. Clean JSON or structured text format.
+  agent: awr_data_specialist
+
+present_options_task:
+  description: >
+    Present the retrieved projects to the user in a clear, easy-to-scan format.
+    
+    DO NOT delegate this task. You already have all the project data from the 
+    previous task context. Work directly with that data.
+    
+    Format your presentation as:
+    1. Summary: "I found [X] projects in your AWR account."
+    2. Top 10 projects by keyword count (ranked list with IDs)
+    3. Notable concerns (projects with low keyword counts or infrequent updates)
+    4. End with: "Which project would you like me to analyze? (provide name, ID, or 'top 1')"
+    
+    After presenting, wait for the user to tell you which project they want analyzed.
+  expected_output: >
+    A clear presentation of projects with top 10 ranked by keywords, notable concerns,
+    and a question asking which project to analyze. Wait for human input with their selection.
+  agent: seo_strategy_analyst
+  context:
+    - retrieve_projects_task
+  human_input: true
+
+gather_preferences_task:
+  description: >
+    The user has selected a project. Now ask them about their analysis preferences.
+    
+    Based on their project selection from the previous task, ask:
+    - "What time period should I analyze? (last 30, 60, 90 days, or all time?)"
+    - "Any specific focus areas? (rankings, keywords, traffic, or comprehensive?)"
+    
+    Keep it conversational. After they respond, summarize their preferences and 
+    confirm before proceeding: "Got it! I'll analyze [project] for [timeframe], 
+    focusing on [areas]."
+  expected_output: >
+    A summary of user preferences including: selected project, time period, 
+    and focus areas. Format: "Analyzing [project] for [timeframe] with focus on [areas]."
+  agent: seo_strategy_analyst
+  context:
+    - present_options_task
+  human_input: true
+
+fetch_detailed_data_task:
+  description: >
+    Fetch detailed data for the user-selected project from the previous task context.
+    
+    Extract the project name/ID from the preferences summary, then use:
+    - Get AWR Project Details tool
+    - Get AWR Project Update Dates tool
+    
+    Retrieve all available data for the selected project.
+  expected_output: >
+    Complete dataset including keywords, websites, search engines, locations, 
+    and update history for the selected project.
+  agent: awr_data_specialist
+  context:
+    - gather_preferences_task
+
+generate_analysis_report_task:
+  description: >
+    Create a comprehensive SEO analysis report based on all gathered data and 
+    user preferences from previous tasks.
+    
+    Structure the report:
+    1. Executive Summary (key findings)
+    2. Project Overview (scope, keywords, search engines)
+    3. Detailed Analysis (based on user's focus areas and timeframe)
+    4. Opportunities & Recommendations
+    5. Next Steps
+    
+    Make it actionable and business-friendly. Use markdown formatting.
+  expected_output: >
+    A comprehensive markdown-formatted SEO analysis report with executive summary,
+    analysis, recommendations, and next steps.
+  agent: seo_strategy_analyst
+  context:
+    - fetch_detailed_data_task
+    - gather_preferences_task
