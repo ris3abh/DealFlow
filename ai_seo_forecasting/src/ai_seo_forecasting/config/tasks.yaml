@@ -20,119 +20,167 @@ present_options_task:
     Format your presentation as:
     1. Summary: "I found [X] projects in your AWR account."
     2. Top 10 projects by keyword count (ranked list with IDs)
-    3. Notable concerns (projects with low keyword counts or infrequent updates)
-    4. End with: "Which project would you like me to analyze? Please provide the project name or ID."
     
-    IMPORTANT: After presenting, wait for the user's response. Simply acknowledge 
-    their selection and confirm it. DO NOT attempt any analysis in this task.
+    Then ask: "Which project would you like me to analyze? Please provide the project name or ID."
+    
+    DO NOT ask about analysis preferences or time frames yet - just get the project selection.
+    Wait for the user to respond with their project choice before proceeding.
   expected_output: >
-    A presentation of projects followed by user's project selection. 
-    Output format: "User selected project: [project_name] (ID: [id])"
+    A clear presentation of projects with a simple question asking which project to analyze.
+    Output should be the selected project name/ID from the user.
   agent: seo_strategy_analyst
-  context:
-    - retrieve_projects_task
-  human_input: true
-
-gather_preferences_task:
-  description: >
-    The user has selected a project in the previous task. Now ask them about 
-    their analysis preferences.
-    
-    Ask these questions:
-    1. "What time period should I analyze? (e.g., last 30 days, 60 days, 90 days, or all time)"
-    2. "What should I focus on? (e.g., keyword rankings, traffic trends, or comprehensive analysis)"
-    
-    Keep it conversational. After they respond, confirm their preferences:
-    "Perfect! I'll analyze [project] for [timeframe], focusing on [areas]. 
-    Let me fetch the detailed data now."
-  expected_output: >
-    Confirmation of analysis preferences in format:
-    "Analysis Configuration:
-    - Project: [name] (ID: [id])
-    - Time Period: [period]
-    - Focus Areas: [areas]"
-  agent: seo_strategy_analyst
-  context:
-    - present_options_task
   human_input: true
 
 fetch_detailed_data_task:
   description: >
-    Extract the project NAME from the previous tasks' context. 
-    CRITICAL: You must use the project NAME (e.g., 'pella.com'), NOT the numeric ID.
+    IMMEDIATELY fetch ALL available data from AWR APIs for the selected project.
+    NO QUESTIONS - just collect everything automatically!
     
-    Use these AWR tools to fetch complete data:
-    1. Get AWR Project Details tool - Provide the project NAME as input
-    2. Get AWR Project Update Dates tool - Provide the project NAME as input
+    You MUST use ALL these tools systematically:
     
-    Fetch ALL available data for the selected project. Be thorough.
+    1. Get AWR Project Details - Get project configuration
+    2. Get AWR Project Update Dates - See historical dates
+    3. Get AWR Keyword Rankings - Get ranking positions (use days=90 for 90 days of data)
+    4. Get AWR Keyword Difficulty - Get competitiveness scores
+    5. Get AWR Search Volume Data - Get monthly search volumes
     
-    Structure the output with:
-    - Project metadata (name, ID, frequency, keyword count)
-    - All keywords being tracked
-    - All websites being monitored
-    - All search engines
-    - All locations
-    - Complete update history with dates
+    Use the project name from the previous task context. For tools that need project_id,
+    extract it from the project details.
+    
+    IMPORTANT: Do this automatically without asking the user anything. Just fetch all the data.
+    If an API call fails, note it and continue with other tools - don't stop the process.
+    
+    Store collected data summary in memory for future reference.
   expected_output: >
     Complete dataset including:
-    1. Project details (name, ID, frequency, depth, etc.)
-    2. Full list of keywords (all of them)
-    3. All websites being tracked
-    4. All search engines being monitored
-    5. All geographic locations
-    6. Complete update history with first and last update dates
-    7. Date count and update frequency analysis
+    - Project details and configuration
+    - Historical update dates
+    - Keyword ranking data (90 days)
+    - Keyword difficulty scores
+    - Search volume data
+    - Summary of what was successfully collected and any errors encountered
+    
+    Structured as JSON or clear text format ready for analysis.
   agent: awr_data_specialist
   context:
-    - gather_preferences_task
+    - present_options_task
+
+gather_preferences_task:
+  description: >
+    NOW that all data has been collected, ask the user what type of analysis they want.
+    
+    Present these analysis options clearly:
+    1. Ranking trends and performance over time
+    2. Keyword opportunities (based on difficulty and search volume)
+    3. Comprehensive SEO audit with all data
+    4. Custom analysis (let them specify what they need)
+    
+    Ask: "I've collected all the data for [PROJECT NAME]. What would you like me to focus on in my analysis?"
+    
+    Wait for their response before proceeding.
+  expected_output: >
+    User's analysis preferences clearly documented. What aspects of the data they want analyzed.
+  agent: seo_strategy_analyst
+  human_input: true
+  context:
+    - fetch_detailed_data_task
+
+analyze_rankings_task:
+  description: >
+    Analyze the keyword ranking data to identify trends, patterns, and insights.
+    
+    Focus on:
+    1. Overall ranking trends (improving, declining, stable)
+    2. Top performing keywords (highest rankings)
+    3. Keywords with biggest improvements
+    4. Keywords with biggest declines
+    5. Ranking volatility and stability
+    6. Search engine specific patterns
+    
+    Look for actionable insights that would help improve SEO strategy.
+    
+    Save your analysis findings to memory.
+  expected_output: >
+    Comprehensive ranking analysis with:
+    - Summary of overall ranking trends
+    - List of top performers and opportunities
+    - Identification of problem areas
+    - Specific insights about ranking changes
+    - Recommendations based on ranking data
+  agent: seo_strategy_analyst
+  context:
+    - fetch_detailed_data_task
+
+analyze_opportunities_task:
+  description: >
+    Identify keyword opportunities by combining difficulty scores and search volume data.
+    
+    Find:
+    1. Low-difficulty, high-volume keywords (quick wins)
+    2. Medium-difficulty keywords with good volume (growth opportunities)
+    3. High-volume keywords worth targeting despite difficulty
+    4. Keywords with declining difficulty (emerging opportunities)
+    
+    Prioritize keywords that offer the best ROI potential.
+    
+    Save opportunity findings to memory for future reference.
+  expected_output: >
+    Prioritized list of keyword opportunities with:
+    - Quick wins (easy targets with good traffic potential)
+    - Growth opportunities (medium difficulty, good volume)
+    - Strategic targets (hard but valuable)
+    - Justification for each recommendation
+    - Expected difficulty and traffic potential
+  agent: seo_strategy_analyst
+  context:
+    - fetch_detailed_data_task
 
 generate_analysis_report_task:
   description: >
-    Create a comprehensive SEO analysis report based on the fetched data and 
-    user preferences from previous tasks.
+    Create a comprehensive, professional SEO analysis report that addresses the user's 
+    specific questions and preferences.
     
-    Structure the report in markdown format:
-    
-    # SEO Analysis Report: [Project Name]
+    Structure the report with:
     
     ## Executive Summary
-    - Quick overview of project scope and key findings
-    - 3-5 bullet points with the most important insights
+    Key findings and recommendations in 3-4 bullet points. What matters most?
     
     ## Project Overview
-    - Project name and ID
-    - Tracking frequency and depth
-    - Number of keywords tracked
-    - Websites monitored
-    - Search engines and locations covered
-    - Data collection period (first to last update)
+    Basic project details, tracking setup, data range analyzed
     
-    ## Data Analysis
-    Based on user's requested focus areas and timeframe, analyze:
-    - Keyword distribution and coverage
-    - Website structure and tracking scope
-    - Search engine and location diversity
-    - Update frequency and data consistency
-    - Notable patterns or gaps in the data
+    ## Ranking Performance Analysis
+    Insights from ranking trends, top performers, areas of concern
     
-    ## Recommendations
-    1. Actionable suggestions for improving SEO tracking
-    2. Opportunities for expanding keyword coverage
-    3. Suggestions for tracking frequency optimization
+    ## Keyword Opportunities
+    Prioritized recommendations based on difficulty and volume analysis
+    
+    ## Detailed Findings
+    Based on user's specific focus areas from their preferences
+    
+    ## Strategic Recommendations
+    1. Immediate actions (this week)
+    2. Short-term initiatives (this month)
+    3. Long-term strategy (this quarter)
     
     ## Next Steps
     Clear action items the user can take based on this analysis.
     
-    Make it professional, actionable, and easy to understand.
+    Make it professional, actionable, and easy to understand. Use data to support 
+    every recommendation.
+    
+    Save the full report to memory for future reference and comparison.
   expected_output: >
     A comprehensive markdown-formatted SEO analysis report with:
     - Executive summary with key findings
     - Detailed project overview with all metrics
+    - Ranking performance analysis
+    - Keyword opportunity analysis
     - Analysis based on user's focus areas
-    - Specific, actionable recommendations
+    - Specific, actionable recommendations with priorities
     - Clear next steps
   agent: seo_strategy_analyst
   context:
     - fetch_detailed_data_task
+    - analyze_rankings_task
+    - analyze_opportunities_task
     - gather_preferences_task
