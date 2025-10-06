@@ -4,7 +4,7 @@ import os
 import json
 from pathlib import Path
 
-# Import ALL AWR tools including new ones
+# Import optimized AWR tools
 from ai_seo_forecasting.tools.awr_tools import (
     AWRProjectsTool,
     AWRProjectDetailsTool,
@@ -14,120 +14,84 @@ from ai_seo_forecasting.tools.awr_tools import (
     AWRSearchVolumeTool
 )
 
+# Import analysis helper tools
+from ai_seo_forecasting.tools.analysis_tools import (
+    QueryMetadataTool,
+    QueryKeywordsByPositionTool,
+    QueryLowDifficultyKeywordsTool,
+    QueryHighVolumeKeywordsTool,
+    CrossReferenceOpportunitiesTool
+)
+
 
 @CrewBase
 class AiSeoForecastingCrew:
-    """AI SEO Forecasting crew for analyzing AWR data with human-in-the-loop interaction"""
+    """AI SEO Forecasting crew - OPTIMIZED for compact context usage"""
     
     agents_config = 'config/agents.yaml'
     tasks_config = 'config/tasks.yaml'
     
     def __init__(self):
-        """Initialize the crew with ALL AWR tools"""
-        # Create memory directory if it doesn't exist
-        self.memory_dir = Path("knowledge/agent_memory")
-        self.memory_dir.mkdir(parents=True, exist_ok=True)
+        """Initialize the crew with ALL tools (collection + analysis)"""
+        # Ensure data directories exist
+        Path("knowledge/api_data").mkdir(parents=True, exist_ok=True)
+        Path("knowledge/agent_memory").mkdir(parents=True, exist_ok=True)
         
-        # Initialize ALL AWR tools (existing + new)
+        # Collection tools (return compact summaries)
         self.awr_projects_tool = AWRProjectsTool()
         self.awr_details_tool = AWRProjectDetailsTool()
         self.awr_dates_tool = AWRProjectDatesTool()
-        
-        # NEW TOOLS
         self.awr_rankings_tool = AWRRankingsTool()
         self.awr_difficulty_tool = AWRKeywordDifficultyTool()
         self.awr_volume_tool = AWRSearchVolumeTool()
         
-        # Load existing memory if available
-        self.load_memory()
-    
-    def load_memory(self):
-        """Load agent memory from storage"""
-        self.memory = {}
-        memory_files = {
-            'data_specialist': self.memory_dir / 'data_specialist_memory.json',
-            'strategy_analyst': self.memory_dir / 'strategy_analyst_memory.json',
-            'shared': self.memory_dir / 'shared_memory.json'
-        }
-        
-        for key, file_path in memory_files.items():
-            if file_path.exists():
-                try:
-                    with open(file_path, 'r') as f:
-                        self.memory[key] = json.load(f)
-                    print(f"✓ Loaded {key} memory: {len(self.memory[key])} items")
-                except Exception as e:
-                    print(f"⚠ Could not load {key} memory: {e}")
-                    self.memory[key] = {}
-            else:
-                self.memory[key] = {}
-    
-    def save_memory(self, agent_name: str, data: dict):
-        """Save agent memory to persistent storage"""
-        memory_file = self.memory_dir / f'{agent_name}_memory.json'
-        
-        # Update memory
-        if agent_name not in self.memory:
-            self.memory[agent_name] = {}
-        
-        # Add timestamp to data
-        data['timestamp'] = str(Path.cwd())
-        
-        # Merge with existing memory
-        self.memory[agent_name].update(data)
-        
-        # Save to file
-        try:
-            with open(memory_file, 'w') as f:
-                json.dump(self.memory[agent_name], f, indent=2)
-            print(f"✓ Saved {agent_name} memory to {memory_file}")
-        except Exception as e:
-            print(f"⚠ Could not save {agent_name} memory: {e}")
-    
-    def get_memory(self, agent_name: str, key: str = None):
-        """Retrieve agent memory"""
-        if agent_name not in self.memory:
-            return None
-        
-        if key:
-            return self.memory[agent_name].get(key)
-        else:
-            return self.memory[agent_name]
+        # Analysis tools (query stored files)
+        self.query_metadata_tool = QueryMetadataTool()
+        self.query_position_tool = QueryKeywordsByPositionTool()
+        self.query_difficulty_tool = QueryLowDifficultyKeywordsTool()
+        self.query_volume_tool = QueryHighVolumeKeywordsTool()
+        self.cross_ref_tool = CrossReferenceOpportunitiesTool()
     
     @agent
     def awr_data_specialist(self) -> Agent:
         """
         AWR Data Retrieval Specialist
-        Handles all interactions with the AWR Cloud API
-        Now with ALL tools including rankings, difficulty, and volume
+        Handles data collection with compact summaries
         """
         return Agent(
             config=self.agents_config['awr_data_specialist'],
             tools=[
-                # Original tools
+                # Collection tools
                 self.awr_projects_tool,
                 self.awr_details_tool,
                 self.awr_dates_tool,
-                # NEW TOOLS - The most important ones!
-                self.awr_rankings_tool,  # Get keyword rankings over time
-                self.awr_difficulty_tool,  # Get keyword difficulty scores
-                self.awr_volume_tool,  # Get search volume data
+                self.awr_rankings_tool,
+                self.awr_difficulty_tool,
+                self.awr_volume_tool,
             ],
             verbose=True,
-            memory=False  # Using custom JSON memory instead
+            max_iter=10  # May need multiple tool calls for data collection
         )
     
     @agent
     def seo_strategy_analyst(self) -> Agent:
         """
-        SEO Strategy Analyst and Interactive Advisor
-        Analyzes data, engages with user, and makes strategic recommendations
+        SEO Strategy Analyst
+        Analyzes stored data and provides insights
         """
         return Agent(
             config=self.agents_config['seo_strategy_analyst'],
-            tools=[],  # Analyst primarily delegates to data specialist for tool usage
+            tools=[
+                # Analysis tools for querying stored data
+                self.query_metadata_tool,
+                self.query_position_tool,
+                self.query_difficulty_tool,
+                self.query_volume_tool,
+                self.cross_ref_tool,
+            ],
             verbose=True,
-            memory=False  # Using custom JSON memory instead
+            allow_delegation=False,  # Works independently with data files
+            max_iter=10
         )
     
     @task
@@ -140,39 +104,37 @@ class AiSeoForecastingCrew:
     
     @task
     def present_options_task(self) -> Task:
-        """Task to present project options to user and get their selection ONLY"""
+        """Task to present projects to user and get selection"""
         return Task(
             config=self.tasks_config['present_options_task'],
             agent=self.seo_strategy_analyst(),
             context=[self.retrieve_projects_task()],
-            human_input=True  # Get project name, nothing else
+            human_input=True,
+            tools=[]  # CRITICAL: No tools! Just present list and collect selection
         )
     
     @task
     def fetch_detailed_data_task(self) -> Task:
-        """
-        Task to fetch ALL data immediately after project selection
-        NO questions asked - just collect everything!
-        """
+        """Task to fetch ALL AWR data for selected project"""
         return Task(
             config=self.tasks_config['fetch_detailed_data_task'],
             agent=self.awr_data_specialist(),
-            context=[self.present_options_task()]  # Runs right after project selection
+            context=[self.present_options_task()]
         )
     
     @task
     def gather_preferences_task(self) -> Task:
-        """Task to ask user about analysis preferences AFTER data collection"""
+        """Task to ask user about analysis preferences"""
         return Task(
             config=self.tasks_config['gather_preferences_task'],
             agent=self.seo_strategy_analyst(),
-            context=[self.fetch_detailed_data_task()],  # Runs AFTER data is collected
+            context=[self.fetch_detailed_data_task()],
             human_input=True
         )
     
     @task
     def analyze_rankings_task(self) -> Task:
-        """NEW TASK: Analyze keyword ranking trends"""
+        """Task to analyze keyword ranking trends from stored files"""
         return Task(
             config=self.tasks_config['analyze_rankings_task'],
             agent=self.seo_strategy_analyst(),
@@ -181,7 +143,7 @@ class AiSeoForecastingCrew:
     
     @task
     def analyze_opportunities_task(self) -> Task:
-        """NEW TASK: Identify keyword opportunities based on difficulty and volume"""
+        """Task to identify keyword opportunities from stored files"""
         return Task(
             config=self.tasks_config['analyze_opportunities_task'],
             agent=self.seo_strategy_analyst(),
@@ -204,11 +166,11 @@ class AiSeoForecastingCrew:
     
     @crew
     def crew(self) -> Crew:
-        """Creates the AI SEO Forecasting crew with human-in-the-loop and custom JSON memory"""
+        """Creates the AI SEO Forecasting crew"""
         return Crew(
-            agents=self.agents,  # Automatically populated
-            tasks=self.tasks,    # Automatically populated
-            process=Process.sequential,  # Tasks run in order with human input at key points
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
             verbose=True,
-            memory=False,  # Disable built-in memory (using custom JSON memory instead)
+            memory=False,  # Using custom file-based storage instead
         )

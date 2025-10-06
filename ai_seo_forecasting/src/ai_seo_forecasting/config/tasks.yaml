@@ -1,85 +1,109 @@
 retrieve_projects_task:
   description: >
     Retrieve all available SEO projects from the Advanced Web Ranking account.
-    Get comprehensive project information including project names, IDs, tracking 
-    frequencies, keyword counts, and main website URLs.
+    Use the AWR Projects tool to fetch this data.
     
-    Use the AWR Projects tool to fetch this data. Structure the information clearly.
+    CRITICAL: The tool will return a SUMMARY with statistics, not raw project lists.
+    You will receive: total count, top 10 projects, averages.
+    Raw data is automatically stored in files - you don't see it.
   expected_output: >
-    A structured list of all AWR projects with names, IDs, frequencies, keyword counts, 
-    and websites. Clean JSON or structured text format.
+    A concise summary containing:
+    - Total number of projects
+    - Top 10 projects by keyword count (name, ID, keyword count only)
+    - Average keywords per project
+    
+    Format as a brief numbered list. Maximum 200 tokens.
   agent: awr_data_specialist
 
 present_options_task:
   description: >
-    Present the retrieved projects to the user in a clear, easy-to-scan format.
+    Present the project summary to the user in a clear, scannable format.
     
-    DO NOT delegate this task. You already have all the project data from the 
-    previous task context. Work directly with that data.
+    CRITICAL: DO NOT use ANY tools. DO NOT try to analyze anything.
+    You are ONLY presenting the list and collecting the user's selection.
+    
+    Work with the summary data from the previous task context.
     
     Format your presentation as:
-    1. Summary: "I found [X] projects in your AWR account."
-    2. Top 10 projects by keyword count (ranked list with IDs)
+    1. One-line summary: "Found [X] projects in your AWR account."
+    2. Top 10 projects as a simple numbered list (name and keyword count only)
+    3. Ask: "Which project would you like me to analyze? (Provide name or ID)"
     
-    Then ask: "Which project would you like me to analyze? Please provide the project name or ID."
+    When the user responds with a project name or ID, your ONLY job is to 
+    output that selection. Do NOT try to query metadata, do NOT try to analyze.
+    Data collection happens in the NEXT task.
     
-    DO NOT ask about analysis preferences or time frames yet - just get the project selection.
-    Wait for the user to respond with their project choice before proceeding.
+    Wait for user response.
   expected_output: >
-    A clear presentation of projects with a simple question asking which project to analyze.
-    Output should be the selected project name/ID from the user.
+    If presenting: Simple numbered list with question.
+    If user responded: ONLY output the selected project name exactly as provided.
+    
+    Example: "CHCP" or "pella.com"
+    
+    DO NOT add analysis, DO NOT use tools, DO NOT add context.
+    Just the project name. Maximum 10 tokens.
   agent: seo_strategy_analyst
   human_input: true
 
 fetch_detailed_data_task:
   description: >
-    IMMEDIATELY fetch ALL available data from AWR APIs for the selected project.
-    NO QUESTIONS - just collect everything automatically!
+    Fetch ALL AWR data for the selected project AUTOMATICALLY.
+    NO questions, NO waiting - just collect everything immediately.
     
-    You MUST use ALL these tools systematically:
+    CRITICAL INSTRUCTIONS:
     
-    1. Get AWR Project Details - Get project configuration
-    2. Get AWR Project Update Dates - See historical dates
-    3. Get AWR Keyword Rankings - Get ranking positions (use days=90 for 90 days of data)
-    4. Get AWR Keyword Difficulty - Get competitiveness scores
-    5. Get AWR Search Volume Data - Get monthly search volumes
+    1. Use ALL these tools in sequence:
+       - Get AWR Project Details
+       - Get AWR Project Update Dates
+       - Get AWR Keyword Rankings (days=90)
+       - Get AWR Keyword Difficulty (needs project + project_id from details)
+       - Get AWR Search Volume Data (needs project_id from details)
     
-    Use the project name from the previous task context. For tools that need project_id,
-    extract it from the project details.
+    2. Each tool returns COMPACT STATISTICS ONLY:
+       - You will NOT see raw keyword lists
+       - You will get: counts, averages, distributions, file paths
+       - Raw data is stored automatically in knowledge/api_data/
     
-    IMPORTANT: Do this automatically without asking the user anything. Just fetch all the data.
-    If an API call fails, note it and continue with other tools - don't stop the process.
+    3. Extract project_id from the details response
     
-    Store collected data summary in memory for future reference.
+    4. If any tool fails, note it and continue with others
+    
+    5. After all tools complete, report the collection status
+    
+    DO NOT ask the user anything. DO NOT wait. Just execute all tools.
   expected_output: >
-    Complete dataset including:
-    - Project details and configuration
-    - Historical update dates
-    - Keyword ranking data (90 days)
-    - Keyword difficulty scores
-    - Search volume data
-    - Summary of what was successfully collected and any errors encountered
+    Data collection status report with ONLY these elements:
     
-    Structured as JSON or clear text format ready for analysis.
+    ✅ Project Details: [project_id], [frequency], [keyword_count] keywords
+    ✅ Rankings: [total_rankings] records, avg position [X], [Y] in top 10
+    ✅ Difficulty: avg [X]/100, [Y] easy opportunities
+    ✅ Volume: [total_volume] monthly searches
+    ✅ Metadata: knowledge/api_data/[project]_metadata.json
+    
+    Format as a brief status checklist. Maximum 300 tokens.
+    
+    DO NOT include: keyword lists, raw data, detailed breakdowns.
+    ONLY include: summary statistics and file paths.
   agent: awr_data_specialist
   context:
     - present_options_task
 
 gather_preferences_task:
   description: >
-    NOW that all data has been collected, ask the user what type of analysis they want.
+    Data collection is complete. Ask what analysis the user wants.
     
-    Present these analysis options clearly:
-    1. Ranking trends and performance over time
-    2. Keyword opportunities (based on difficulty and search volume)
-    3. Comprehensive SEO audit with all data
-    4. Custom analysis (let them specify what they need)
+    Present these options clearly:
+    1. Ranking trends and performance analysis
+    2. Keyword opportunity identification (low difficulty + high volume)
+    3. Comprehensive SEO audit
+    4. Custom analysis (user specifies)
     
-    Ask: "I've collected all the data for [PROJECT NAME]. What would you like me to focus on in my analysis?"
+    Ask: "I've collected all data for [PROJECT]. What would you like me to analyze?"
     
-    Wait for their response before proceeding.
+    Keep it brief. Wait for their response.
   expected_output: >
-    User's analysis preferences clearly documented. What aspects of the data they want analyzed.
+    User's analysis preference clearly stated.
+    Maximum 50 tokens. Just the choice, no elaboration.
   agent: seo_strategy_analyst
   human_input: true
   context:
@@ -87,98 +111,124 @@ gather_preferences_task:
 
 analyze_rankings_task:
   description: >
-    Analyze the keyword ranking data to identify trends, patterns, and insights.
+    Analyze ranking performance using the STORED data files.
+    
+    CRITICAL: Do NOT try to analyze from task context - it only has summaries.
+    
+    PROCESS:
+    1. Use "Query Project Metadata" tool first to see what files exist
+    2. Use "Query Keywords by Position Range" for specific position segments:
+       - Positions 1-3 (top performers)
+       - Positions 4-10 (near top)
+       - Positions 11-20 (page 2 opportunities)
+    3. Analyze patterns you find
     
     Focus on:
-    1. Overall ranking trends (improving, declining, stable)
-    2. Top performing keywords (highest rankings)
-    3. Keywords with biggest improvements
-    4. Keywords with biggest declines
-    5. Ranking volatility and stability
-    6. Search engine specific patterns
+    - Which position segments have most keywords
+    - Distribution of rankings
+    - Quick-win opportunities (positions 4-10)
+    - Page 2 opportunities (positions 11-20)
     
-    Look for actionable insights that would help improve SEO strategy.
-    
-    Save your analysis findings to memory.
+    Keep analysis concise and actionable.
   expected_output: >
-    Comprehensive ranking analysis with:
-    - Summary of overall ranking trends
-    - List of top performers and opportunities
-    - Identification of problem areas
-    - Specific insights about ranking changes
-    - Recommendations based on ranking data
+    Ranking analysis with specific insights:
+    
+    Position Distribution:
+    - Top 3: [X] keywords
+    - Positions 4-10: [Y] keywords (opportunity to reach top 3)
+    - Page 2 (11-20): [Z] keywords (opportunity to reach page 1)
+    
+    Key Insights:
+    - [2-3 specific, actionable observations]
+    
+    Maximum 400 tokens. Focus on insights, not data dumps.
   agent: seo_strategy_analyst
   context:
     - fetch_detailed_data_task
 
 analyze_opportunities_task:
   description: >
-    Identify keyword opportunities by combining difficulty scores and search volume data.
+    Identify keyword optimization opportunities using the STORED data files.
     
-    Find:
-    1. Low-difficulty, high-volume keywords (quick wins)
-    2. Medium-difficulty keywords with good volume (growth opportunities)
-    3. High-volume keywords worth targeting despite difficulty
-    4. Keywords with declining difficulty (emerging opportunities)
+    CRITICAL: Query the stored files, don't use task context summaries.
     
-    Prioritize keywords that offer the best ROI potential.
+    PROCESS:
+    1. Use "Query Project Metadata" to verify data availability
+    2. Use "Cross-Reference SEO Opportunities" tool with these criteria:
+       - Position range: 11-50 (not on page 1 yet)
+       - Max difficulty: 40 (winnable)
+       - Min volume: 500 (worthwhile traffic)
+    3. Analyze the opportunities returned
     
-    Save opportunity findings to memory for future reference.
+    The cross-reference tool does the heavy lifting - it combines:
+    - Rankings data (positions 11-50)
+    - Difficulty data (≤40)
+    - Volume data (≥500 searches/month)
+    
+    Interpret the results and recommend priorities.
   expected_output: >
-    Prioritized list of keyword opportunities with:
-    - Quick wins (easy targets with good traffic potential)
-    - Growth opportunities (medium difficulty, good volume)
-    - Strategic targets (hard but valuable)
-    - Justification for each recommendation
-    - Expected difficulty and traffic potential
+    Opportunity analysis with specific recommendations:
+    
+    Top Opportunities Found: [X]
+    
+    Priority Targets (list top 5-10):
+    1. [Keyword] - Pos [X], Difficulty [Y], Volume [Z] searches/month
+    2. [Keyword] - Pos [X], Difficulty [Y], Volume [Z] searches/month
+    ...
+    
+    Strategy Recommendation:
+    - [2-3 specific action items based on the opportunities]
+    
+    Maximum 500 tokens. Be specific and actionable.
   agent: seo_strategy_analyst
   context:
     - fetch_detailed_data_task
 
 generate_analysis_report_task:
   description: >
-    Create a comprehensive, professional SEO analysis report that addresses the user's 
-    specific questions and preferences.
+    Generate a comprehensive SEO analysis report synthesizing all findings.
     
-    Structure the report with:
+    STRUCTURE YOUR REPORT:
+    
+    # SEO Analysis Report: [Project Name]
     
     ## Executive Summary
-    Key findings and recommendations in 3-4 bullet points. What matters most?
+    - [3-5 bullet points of key findings]
     
-    ## Project Overview
-    Basic project details, tracking setup, data range analyzed
+    ## Current Performance (from analyze_rankings_task context)
+    - [Brief summary of ranking distribution]
+    - [Key performance metrics]
     
-    ## Ranking Performance Analysis
-    Insights from ranking trends, top performers, areas of concern
-    
-    ## Keyword Opportunities
-    Prioritized recommendations based on difficulty and volume analysis
-    
-    ## Detailed Findings
-    Based on user's specific focus areas from their preferences
+    ## Opportunities Identified (from analyze_opportunities_task context)
+    - [Top opportunities with specific keywords]
+    - [Priority recommendations]
     
     ## Strategic Recommendations
-    1. Immediate actions (this week)
-    2. Short-term initiatives (this month)
-    3. Long-term strategy (this quarter)
+    - [3-5 prioritized action items]
+    - [Expected impact of each]
     
     ## Next Steps
-    Clear action items the user can take based on this analysis.
+    - [Specific, tactical next actions]
     
-    Make it professional, actionable, and easy to understand. Use data to support 
-    every recommendation.
-    
-    Save the full report to memory for future reference and comparison.
+    Keep it concise, actionable, and data-driven.
+    Use the insights from previous analysis tasks - don't re-query data.
   expected_output: >
-    A comprehensive markdown-formatted SEO analysis report with:
+    A complete SEO analysis report in markdown format.
+    
+    Must include:
     - Executive summary with key findings
-    - Detailed project overview with all metrics
-    - Ranking performance analysis
-    - Keyword opportunity analysis
-    - Analysis based on user's focus areas
-    - Specific, actionable recommendations with priorities
-    - Clear next steps
+    - Performance analysis section
+    - Opportunity identification section
+    - Strategic recommendations
+    - Next steps
+    
+    Maximum 1500 tokens.
+    
+    CRITICAL: Use insights from previous analysis tasks.
+    DO NOT query data files again - synthesize existing analysis.
   agent: seo_strategy_analyst
+  markdown: true
+  output_file: seo_analysis_report.md
   context:
     - fetch_detailed_data_task
     - analyze_rankings_task

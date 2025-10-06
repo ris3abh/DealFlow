@@ -1,0 +1,522 @@
+[
+  {
+    "name": "Abbey Delray South",
+    "id": "81",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "70",
+    "main_website": "www.abbeydelraysouth.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759483511
+  },
+  {
+    "name": "AgencyBloc",
+    "id": "108",
+    "frequency": "monthly",
+    "depth": "5",
+    "kwcount": "191",
+    "main_website": "www.agencybloc.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719148
+  },
+  {
+    "name": "Albaugh",
+    "id": "107",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "135",
+    "main_website": "albaugh.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759537897
+  },
+  {
+    "name": "Beacon Hill",
+    "id": "84",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "88",
+    "main_website": "www.beaconhilllombard.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759498187
+  },
+  {
+    "name": "Brandycare - Active Retainer",
+    "id": "115",
+    "frequency": "biweekly",
+    "depth": "5",
+    "kwcount": "20",
+    "main_website": "www.brandycare.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759674881
+  },
+  {
+    "name": "CHCP",
+    "id": "105",
+    "frequency": "weekly",
+    "depth": "10",
+    "kwcount": "1151",
+    "main_website": "www.chcp.edu/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759600244
+  },
+  {
+    "name": "Claridge Court",
+    "id": "86",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "87",
+    "main_website": "www.claridgecourt.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759505442
+  },
+  {
+    "name": "Coverall",
+    "id": "104",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "582",
+    "main_website": "coverall.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719094
+  },
+  {
+    "name": "Crayola",
+    "id": "103",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "132",
+    "main_website": "www.crayola.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759485850
+  },
+  {
+    "name": "Crazy Shirts",
+    "id": "97",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "312",
+    "main_website": "www.crazyshirts.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759718859
+  },
+  {
+    "name": "Crebrid",
+    "id": "119",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "451",
+    "main_website": "crebrid.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759471534
+  },
+  {
+    "name": "Crebrid_1",
+    "id": "120",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "252",
+    "main_website": "crebrid.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759566248
+  },
+  {
+    "name": "EnergyCap",
+    "id": "99",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "190",
+    "main_website": "www.energycap.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759718922
+  },
+  {
+    "name": "Equipment Depot",
+    "id": "121",
+    "frequency": "biweekly",
+    "depth": "5",
+    "kwcount": "53",
+    "main_website": "eqdepot.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759674273
+  },
+  {
+    "name": "Hearts on Fire",
+    "id": "79",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "309",
+    "main_website": "www.heartsonfire.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719248
+  },
+  {
+    "name": "https://basis.com",
+    "id": "113",
+    "frequency": "weekly",
+    "depth": "10",
+    "kwcount": "143",
+    "main_website": "basis.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759494575
+  },
+  {
+    "name": "https://www.greenfieldsgeneva.org",
+    "id": "90",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "78",
+    "main_website": "www.greenfieldsgeneva.org/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759484240
+  },
+  {
+    "name": "https://www.storespace.com",
+    "id": "80",
+    "frequency": "weekly",
+    "depth": "3",
+    "kwcount": "50",
+    "main_website": "www.storespace.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759483312
+  },
+  {
+    "name": "iowaclinic.com",
+    "id": "5",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "752",
+    "main_website": "iowaclinic.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719002
+  },
+  {
+    "name": "Jacobsen Homes",
+    "id": "114",
+    "frequency": "monthly",
+    "depth": "10",
+    "kwcount": "138",
+    "main_website": "jachomes.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759339971
+  },
+  {
+    "name": "Kay Park Recreation",
+    "id": "109",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "515",
+    "main_website": "kaypark.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759578923
+  },
+  {
+    "name": "LPI - Lawn Pride of Indianapolis",
+    "id": "110",
+    "frequency": "weekly",
+    "depth": "10",
+    "kwcount": "79",
+    "main_website": "lawnpride.com/indianapolis/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719198
+  },
+  {
+    "name": "momsmeals.com",
+    "id": "17",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "509",
+    "main_website": "momsmeals.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719307
+  },
+  {
+    "name": "Monarch Communities - Active Retainer",
+    "id": "116",
+    "frequency": "biweekly",
+    "depth": "5",
+    "kwcount": "20",
+    "main_website": "monarchcommunities.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759674871
+  },
+  {
+    "name": "ncmic.com",
+    "id": "40",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "1036",
+    "main_website": "ncmic.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759591875
+  },
+  {
+    "name": "pella.com",
+    "id": "27",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "2104",
+    "main_website": "pella.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719331
+  },
+  {
+    "name": "pellabranch.com",
+    "id": "2",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "862",
+    "main_website": "pellabranch.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759744289
+  },
+  {
+    "name": "Querencia at Barton Creek",
+    "id": "89",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "76",
+    "main_website": "www.querenciabartoncreek.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759507136
+  },
+  {
+    "name": "Saunders Real Estate - Commercial",
+    "id": "117",
+    "frequency": "weekly",
+    "depth": "10",
+    "kwcount": "211",
+    "main_website": "commercial.saundersrealestate.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759567345
+  },
+  {
+    "name": "Saunders Real Estate - Land",
+    "id": "118",
+    "frequency": "weekly",
+    "depth": "10",
+    "kwcount": "427",
+    "main_website": "land.saundersrealestate.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759505194
+  },
+  {
+    "name": "spinutech.com",
+    "id": "13",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "708",
+    "main_website": "spinutech.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759589766
+  },
+  {
+    "name": "store.senecaco.com",
+    "id": "53",
+    "frequency": "weekly",
+    "depth": "10",
+    "kwcount": "341",
+    "main_website": "senecaco.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759501350
+  },
+  {
+    "name": "TGH PDI",
+    "id": "100",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "65",
+    "main_website": "health.usf.edu/people-development-institute",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759522655
+  },
+  {
+    "name": "The Waterford",
+    "id": "102",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "47",
+    "main_website": "www.thewaterford.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759484427
+  },
+  {
+    "name": "Village on the Green",
+    "id": "83",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "76",
+    "main_website": "www.votgseniorliving.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759587868
+  },
+  {
+    "name": "www.albaughllc.com",
+    "id": "74",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "69",
+    "main_website": "www.albaughllc.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759482657
+  },
+  {
+    "name": "www.cullmanec.com/sprout",
+    "id": "76",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "204",
+    "main_website": "www.cullmanec.com/sprout",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759530345
+  },
+  {
+    "name": "www.deere.com",
+    "id": "71",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "255",
+    "main_website": "www.deere.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759490261
+  },
+  {
+    "name": "www.deere.com/en",
+    "id": "64",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "1410",
+    "main_website": "www.deere.com/en/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759593032
+  },
+  {
+    "name": "www.friendshipvillagemn.com",
+    "id": "87",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "76",
+    "main_website": "www.friendshipvillagemn.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759483354
+  },
+  {
+    "name": "www.friendshipvillagepa.com ",
+    "id": "88",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "75",
+    "main_website": "www.friendshipvillagepa.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759491937
+  },
+  {
+    "name": "www.harboursedge.com",
+    "id": "82",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "77",
+    "main_website": "www.harboursedge.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759483451
+  },
+  {
+    "name": "www.lifespacecommunities.com",
+    "id": "56",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "230",
+    "main_website": "www.lifespacecommunities.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759608153
+  },
+  {
+    "name": "www.mumosystems.com",
+    "id": "68",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "143",
+    "main_website": "www.mumosystems.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759595083
+  },
+  {
+    "name": "www.newcastleplace.com",
+    "id": "122",
+    "frequency": "weekly",
+    "depth": "2",
+    "kwcount": "86",
+    "main_website": "www.newcastleplace.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719330
+  },
+  {
+    "name": "www.oaktraceseniorliving.com",
+    "id": "85",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "75",
+    "main_website": "www.oaktraceseniorliving.com",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759483898
+  },
+  {
+    "name": "www.pci-academy.com",
+    "id": "78",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "58",
+    "main_website": "www.pci-academy.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759498126
+  },
+  {
+    "name": "www.profsolutions.com",
+    "id": "50",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "420",
+    "main_website": "www.profsolutions.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719308
+  },
+  {
+    "name": "www.profsolutions.com_1",
+    "id": "57",
+    "frequency": "weekly",
+    "depth": "10",
+    "kwcount": "99",
+    "main_website": "www.profsolutions.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719309
+  },
+  {
+    "name": "www.stanleyconsultants.com",
+    "id": "66",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "175",
+    "main_website": "www.stanleyconsultants.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759490610
+  },
+  {
+    "name": "www.vtindustries.com",
+    "id": "72",
+    "frequency": "monthly",
+    "depth": "5",
+    "kwcount": "23",
+    "main_website": "www.vtindustries.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759279199
+  },
+  {
+    "name": "yanmartractor.com",
+    "id": "48",
+    "frequency": "weekly",
+    "depth": "5",
+    "kwcount": "278",
+    "main_website": "yanmartractor.com/",
+    "last_updated": "2025-10-01",
+    "timestamp": 1759719307
+  }
+]
